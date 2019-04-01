@@ -1,0 +1,247 @@
+#!/usr/bin/env sh
+
+# Defaults 
+CONF="$(dirname "${0}")/$(basename "${0}")-openssl.cnf"
+PDIR="${HOME}/ssl/CA/"
+CA="Root"                               # Don't change this one
+INTER=false                             # Or this one
+self="$(basename "${0}")"
+
+# Help!
+usage() {
+    echo "Usage: ${self} [ options ... ] [COMMAND] [arguments]"
+    echo
+    echo "Valid options are:"
+    echo "  -c <config-file>  Specify the OpenSSL configuration to work with"
+    echo "                    (default: ${CONF})"
+    echo "  -d <folder>       Specify the folder to work on (default: ${PDIR})"
+    echo "                    This folder will hold the Root CA and intermediate"
+    echo "                    CAs as sub-folders."
+    echo "  -i <intermediate> Work on <intermediate> (instead of the Root CA)"
+    echo "  -h                Show this help"
+    echo
+    echo "Valid commands are:"
+    echo "  init              Initialise the specified CA"
+    echo "  reinit            Reissue the specified CA (in case of expiry or similar)"
+    echo "  sign              Sign a supplied *.csr file"
+    echo "  list              List all signed certificates with their serial and validity"
+    echo "  list-revoked      List all revoked certificates"
+    echo "  revoke <serial>   Revoke the certificate matching <serial>"
+    echo "  help              Show this help"
+}
+
+# Check if we need to commit anything
+git_check() {
+    cd "${PDIR}"
+    if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+        echo -e '\007\e[31m';
+        echo "The working folder (${PDIR}) is part of a git repository!"
+        echo "Do *not* forget to check if you need to commit / push anything!"
+        echo -e '\e[0m'
+        echo "REMEMBER! Post-merging or rebasing CA repositories is more often than not impossible!"
+        echo "Go to ${PDIR} *now* to check!"
+    fi
+}
+
+# Options
+while getopts ":c:d:i:h" opt; do
+    case "${opt}" in
+        c)  # OpenSSL config
+            CONF="${OPTARG}"
+        ;;
+
+        d)  # Working folder
+            PDIR="${OPTARG}"
+        ;;
+
+        i)  # Intermediate name
+            if [ "${OPTARG}" != "Root" ]; then
+                CA="${OPTARG}"
+                INTER=true
+            fi
+        ;;
+
+        h)  # HELP!
+            usage
+            exit
+        ;;
+
+        \?) # ?
+            echo "Unknown option: -${OPTARG}"
+            echo
+            usage
+            exit 1
+        ;;
+
+        :)  # Catch errors
+            echo "Option -${OPTARG} requires an argument."
+            echo
+            usage
+            exit 1
+        ;;
+    esac
+done
+shift $((${OPTIND} - 1))    # Any non-option arguments are now just $1, $2, etc.
+
+# Sanity checks
+if [ ! -r "${CONF}" ]; then
+    echo "${CONF} does not exist or is not readable!"
+    exit 2
+fi
+if [ ! -d "${PDIR}" ]; then
+    echo "${PDIR} does not exist or is not a folder!"
+    exit 2
+fi
+if $INTER && [ ! -d "${PDIR}/Root" ]; then
+    echo "No Root authority but asked to work on intermediate ${CA}. This is an error."
+    exit 2
+fi
+
+# Environment and variables, exported for OpenSSL
+export CA
+export CA_DIR="${PDIR}/${CA}"
+
+#Commands
+case "${1}" in
+    init)   # Initialise the CA
+        if [ -f "${CA_DIR}/serial" ]; then
+            echo "There's already a CA at ${CA_DIR}"
+            exit 2
+        fi
+
+        echo "[${self}] Setting up ${CA_DIR}..."
+        [ ! -d "${CA_DIR}" ] && mkdir "${CA_DIR}"
+        mkdir "${CA_DIR}/crl" "${CA_DIR}/certs" "${CA_DIR}/newcerts" "${CA_DIR}/private"
+        chmod go-rwx "${CA_DIR}/private"
+        echo '01'> "${CA_DIR}/serial"
+        echo '01'> "${CA_DIR}/crlnumber"
+        touch "${CA_DIR}/index.txt"
+        echo
+
+        echo "[${self}] Creating ${CA} CA..."
+        if $INTER; then
+            openssl req -config "${CONF}" -newkey rsa:4096 -out "${PDIR}/Root/certs/${CA}.csr" -outform PEM ||
+                exit $?
+            echo
+
+            echo "[${self}] ${CA} is an intermediate, signing it..."
+            export CA_DIR="${PDIR}/Root"    # Work on Root to sign ${CA}
+            openssl ca -batch -extensions v3_ca -config "${CONF}" -in "${PDIR}/Root/certs/${CA}.csr" -out \
+                "${PDIR}/Root/certs/${CA}.crt" || exit $?
+            export CA_DIR="${PDIR}/${CA}"
+            rm "${PDIR}/Root/certs/${CA}.csr"
+            cp "${PDIR}/Root/certs/${CA}.crt" "${CA_DIR}/ca.crt"
+            echo
+        else
+            openssl req -config "${CONF}" -days 1825 -x509 -newkey rsa:4096 -out "${CA_DIR}/ca.crt" -outform PEM ||
+                exit $?
+            echo
+        fi
+        echo "[${self}] Generating ${CA} CA's CRL"
+        openssl ca -config "${CONF}" -gencrl -out "${CA_DIR}/crl.pem" || exit $?
+        echo
+        echo "Done."
+        git_check
+    ;;
+
+    reinit)
+        if [ ! -f "${CA_DIR}/serial" ]; then
+            echo "There's no CA at ${CA_DIR}"
+            exit 2
+        fi
+
+        echo "[${self}] Reissuing ${CA} CA..."
+        if $INTER; then
+            openssl req -config "${CONF}" -new -key "${CA_DIR}/private/ca-key.pem" -out \
+                "${PDIR}/Root/certs/${CA}.csr" -outform PEM || exit $?
+            echo
+
+            echo "[${self}] Revoking ${CA} CA..."
+            export CA_DIR="${PDIR}/Root"    # Work on Root to revoke ${CA}
+            serial="$(grep "${CA} CA" "${CA_DIR}/index.txt" | egrep "^V" | cut -f 4)"
+            openssl ca -config "${CONF}" -revoke "${CA_DIR}/newcerts/${serial}.pem" || exit $?
+            echo
+            echo "[${self}] Generating Root CA's CRL"
+            openssl ca -config "${CONF}" -gencrl -out "${CA_DIR}/crl.pem" || exit $?
+            export CA_DIR="${PDIR}/${CA}"
+            echo
+
+            echo "[${self}] ${CA} is an intermediate, signing it..."
+            export CA_DIR="${PDIR}/Root"    # Work on Root to sign ${CA}
+            openssl ca -batch -extensions v3_ca -config "${CONF}" -in "${PDIR}/Root/certs/${CA}.csr" -out \
+                "${PDIR}/Root/certs/${CA}.crt" || exit $?
+            export CA_DIR="${PDIR}/${CA}"
+            rm "${PDIR}/Root/certs/${CA}.csr"
+            cp "${PDIR}/Root/certs/${CA}.crt" "${CA_DIR}/ca.crt"
+            echo
+        else
+            openssl req -config "${CONF}" -days 1825 -x509 -new -key "${CA_DIR}/private/ca-key.pem" -out \
+                "${CA_DIR}/ca.crt" -outform PEM || exit $?
+            echo
+        fi
+        echo "[${self}] Generating ${CA} CA's CRL"
+        openssl ca -config "${CONF}" -gencrl -out "${CA_DIR}/crl.pem" || exit $?
+        echo
+        echo "Done."
+        git_check
+    ;;
+
+    sign)   # Sign a supplied CSR
+        if [ ! -f "$(basename "${2}" .csr).csr" ]; then
+            echo "Can't find ${2} or it isn't a CSR"
+            exit 2
+        fi
+        echo "[${self}] Signing ${2} with ${CA} CA..."
+        if $INTER; then
+            openssl ca -batch -policy policy_anything -config "${CONF}" -in "${2}" -out "$(basename "${2}" \
+                .csr).crt" || exit $?
+        else
+            openssl ca -batch -config "${CONF}" -in "${2}" -out "$(basename "${2}" .csr).crt" || exit $?
+        fi
+        echo
+        echo "Done."
+        git_check
+    ;;
+
+    list)
+        for s in $(cat "${CA_DIR}/index.txt" | egrep "^V" | cut -f 4); do
+            echo -n "${s}  "
+            openssl x509 -noout -text -in "${CA_DIR}/newcerts/${s}.pem" | grep "Subject:" | sed \
+                's/.*,\ CN=//g;s/\/.*$//g'
+            openssl x509 -noout -text -in "${CA_DIR}/newcerts/${s}.pem" | grep -A 2 Validity
+            echo
+        done
+    ;;
+
+    list-revoked)
+        cat "${CA_DIR}/index.txt" | egrep "^R" | cut -f 4,6 | sed 's|[[:space:]]/.*/CN=|\ \ |g;s|/.*||g'
+    ;;
+
+    revoke)
+        if [ ! -f "${CA_DIR}/newcerts/${2}.pem" ]; then
+            echo "No such serial: ${2}"
+            exit 2
+        fi
+        cname=$(cat "${CA_DIR}/index.txt" | cut -f 4,6 | sed 's|\t/.*/CN=|\t|g;s|/.*||g' | egrep "^${2}" | cut \
+            -f 2)
+        echo "[${self}] Revoking serial ${2} (${cname}) by ${CA} CA..."
+        openssl ca -config "${CONF}" -revoke "${CA_DIR}/newcerts/${2}.pem" || exit $?
+        echo
+        echo "[${self}] Generating ${CA} CA's CRL"
+        openssl ca -config "${CONF}" -gencrl -out "${CA_DIR}/crl.pem" || exit $?
+        echo
+        echo "Done."
+        git_check
+    ;;
+
+    help)
+        usage
+    ;;
+
+    *)
+        echo "Invalid or empty command: ${1}"
+        echo
+        usage
+        exit 1
+    ;;
+esac

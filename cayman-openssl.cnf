@@ -1,0 +1,101 @@
+HOME                            = $ENV::CA_DIR
+RANDFILE                        = $ENV::HOME/.rnd
+
+[ ca ]
+default_ca                      = CA_default
+
+[ CA_default ]
+dir                             = $ENV::CA_DIR
+certs                           = $dir/certs
+crl_dir                         = $dir/crl
+database                        = $dir/index.txt
+new_certs_dir                   = $dir/newcerts
+certificate                     = $dir/ca.crt
+serial                          = $dir/serial
+crlnumber                       = $dir/crlnumber
+crl                             = $dir/crl.pem
+private_key                     = $dir/private/ca-key.pem
+RANDFILE                        = $dir/private/.rand
+x509_extensions                 = usr_cert
+crl_extensions                  = crl_ext
+copy_extensions                 = copy
+default_days                    = 365
+default_crl_days                = 30
+default_md                      = sha256
+preserve                        = no
+policy                          = policy_match
+
+[ policy_match ]
+countryName                     = match
+stateOrProvinceName             = match
+organizationName                = match
+organizationalUnitName          = supplied
+commonName                      = supplied
+emailAddress                    = supplied
+
+[ policy_anything ]
+countryName                     = supplied
+stateOrProvinceName             = supplied
+localityName                    = supplied
+organizationName                = supplied
+organizationalUnitName          = optional
+commonName                      = supplied
+emailAddress                    = optional
+
+[ req ]
+default_bits                    = 4096
+default_md                      = sha256
+default_keyfile                 = $ENV::CA_DIR/private/ca-key.pem
+distinguished_name              = req_distinguished_name
+attributes                      = req_attributes
+x509_extensions                 = v3_ca
+string_mask                     = utf8only
+
+[ req_distinguished_name ]
+countryName                     = Country Name (2 letter code)
+countryName_default             = XZ
+countryName_min                 = 2
+countryName_max                 = 2
+stateOrProvinceName             = State or Province Name (full name)
+stateOrProvinceName_default     = Atlantic Ocean
+localityName                    = Locality Name (eg, city)
+localityName_default            = Mid-Atlantic Ridge
+0.organizationName              = Organization Name (eg, company)
+0.organizationName_default      = Divergent Boundary Corporation
+organizationalUnitName          = Organizational Unit Name (eg, section)
+organizationalUnitName_default  = Black Smokers
+commonName                      = Common Name (eg, your name or your server\'s hostname)
+commonName_default              = DBC - $ENV::CA CA
+commonName_max                  = 64
+emailAddress                    = Email Address
+emailAddress_default            = black.smokers@dbc.int
+emailAddress_max                = 64
+
+[ req_attributes ]
+challengePassword               = A challenge password
+challengePassword_min           = 4
+challengePassword_max           = 20
+unstructuredName                = An optional company name
+
+[ usr_cert ]
+basicConstraints                = CA:FALSE
+subjectKeyIdentifier            = hash
+authorityKeyIdentifier          = keyid,issuer
+nsCaRevocationUrl               = https://ssl.dbc.int/Root/crl.pem
+nsRevocationUrl                 = https://ssl.dbc.int/$ENV::CA/crl.pem
+crlDistributionPoints           = URI:https://ssl.dbc.int/$ENV::CA/crl.pem
+
+[ v3_req ]
+basicConstraints                = CA:FALSE
+keyUsage                        = nonRepudiation, digitalSignature, keyEncipherment
+
+[ v3_ca ]
+nsCaRevocationUrl               = https://ssl.dbc.int/Root/crl.pem
+nsRevocationUrl                 = https://ssl.dbc.int/$ENV::CA/crl.pem
+crlDistributionPoints           = URI:https://ssl.dbc.int/$ENV::CA/crl.pem
+subjectKeyIdentifier            = hash
+authorityKeyIdentifier          = keyid:always,issuer
+basicConstraints                = CA:true
+
+[ crl_ext ]
+authorityKeyIdentifier          = keyid:always
