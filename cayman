@@ -1,11 +1,6 @@
 #!/usr/bin/env sh
 
-# Defaults 
-CONF="$(dirname "${0}")/$(basename "${0}")-openssl.cnf"
-PDIR="${HOME}/ssl/CA/"
-CA="Root"                               # Don't change this one
-INTER=false                             # Or this one
-self="$(basename "${0}")"
+source "$(dirname "${0}")/$(basename "${0}").conf"
 
 # Help!
 usage() {
@@ -99,6 +94,7 @@ fi
 
 # Environment and variables, exported for OpenSSL
 export CA
+export PDIR
 export CA_DIR="${PDIR}/${CA}"
 
 #Commands

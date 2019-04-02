@@ -1,5 +1,5 @@
 HOME                            = $ENV::CA_DIR
-RANDFILE                        = $ENV::HOME/.rnd
+RANDFILE                        = $ENV::PDIR/.rnd
 
 [ ca ]
 default_ca                      = CA_default
@@ -53,22 +53,22 @@ string_mask                     = utf8only
 
 [ req_distinguished_name ]
 countryName                     = Country Name (2 letter code)
-countryName_default             = XZ
+countryName_default             = $ENV::CA_CNTR
 countryName_min                 = 2
 countryName_max                 = 2
 stateOrProvinceName             = State or Province Name (full name)
-stateOrProvinceName_default     = Atlantic Ocean
+stateOrProvinceName_default     = $ENV::CA_PROV
 localityName                    = Locality Name (eg, city)
-localityName_default            = Mid-Atlantic Ridge
+localityName_default            = $ENV::CA_CITY
 0.organizationName              = Organization Name (eg, company)
-0.organizationName_default      = Divergent Boundary Corporation
+0.organizationName_default      = $ENV::CA_ORGA
 organizationalUnitName          = Organizational Unit Name (eg, section)
-organizationalUnitName_default  = Black Smokers
+organizationalUnitName_default  = $ENV::CA_UNIT
 commonName                      = Common Name (eg, your name or your server\'s hostname)
-commonName_default              = DBC - $ENV::CA CA
+commonName_default              = $ENV::CA_PREF - $ENV::CA CA
 commonName_max                  = 64
 emailAddress                    = Email Address
-emailAddress_default            = black.smokers@dbc.int
+emailAddress_default            = $ENV::CA_MAIL
 emailAddress_max                = 64
 
 [ req_attributes ]
@@ -81,18 +81,18 @@ unstructuredName                = An optional company name
 basicConstraints                = CA:FALSE
 subjectKeyIdentifier            = hash
 authorityKeyIdentifier          = keyid,issuer
-nsCaRevocationUrl               = https://ssl.dbc.int/Root/crl.pem
-nsRevocationUrl                 = https://ssl.dbc.int/$ENV::CA/crl.pem
-crlDistributionPoints           = URI:https://ssl.dbc.int/$ENV::CA/crl.pem
+nsCaRevocationUrl               = $ENV::URL_PRE/Root/crl.pem
+nsRevocationUrl                 = $ENV::URL_PRE/$ENV::CA/crl.pem
+crlDistributionPoints           = URI:$ENV::URL_PRE/$ENV::CA/crl.pem
 
 [ v3_req ]
 basicConstraints                = CA:FALSE
 keyUsage                        = nonRepudiation, digitalSignature, keyEncipherment
 
 [ v3_ca ]
-nsCaRevocationUrl               = https://ssl.dbc.int/Root/crl.pem
-nsRevocationUrl                 = https://ssl.dbc.int/$ENV::CA/crl.pem
-crlDistributionPoints           = URI:https://ssl.dbc.int/$ENV::CA/crl.pem
+nsCaRevocationUrl               = $ENV::URL_PRE/Root/crl.pem
+nsRevocationUrl                 = $ENV::URL_PRE/$ENV::CA/crl.pem
+crlDistributionPoints           = URI:$ENV::URL_PRE/$ENV::CA/crl.pem
 subjectKeyIdentifier            = hash
 authorityKeyIdentifier          = keyid:always,issuer
 basicConstraints                = CA:true
