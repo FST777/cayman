@@ -6,9 +6,8 @@ certificates in a semi-standardized way.
 
 # Set up
 
-Put `cayman` and `cayman-openssl.cnf` somewhere together and edit
-`cayman-openssl.cnf` to reflect the details of your operation (including the
-URLs). If needed, edit the variables at the top of `cayman` to taste.
+Put `cayman`, `cayman.conf` and `cayman-openssl.cnf` somewhere together and
+edit `cayman.conf` to reflect the details of your operation.
 
 As per the usage, initialize your first top-level CA with `cayman init`.
 
