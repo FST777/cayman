@@ -18,7 +18,7 @@ usage() {
     echo "Valid commands are:"
     echo "  init              Initialise the specified CA"
     echo "  reinit            Reissue the specified CA (in case of expiry or similar)"
-    echo "  sign              Sign a supplied *.csr file"
+    echo "  sign              Sign a supplied *.csr file (use - for STDIN)"
     echo "  list              List all signed certificates with their serial and validity"
     echo "  list-revoked      List all revoked certificates"
     echo "  revoke <serial>   Revoke the certificate matching <serial>"
@@ -29,12 +29,12 @@ usage() {
 git_check() {
     cd "${PDIR}"
     if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
-        echo -e '\007\e[31m';
-        echo "The working folder (${PDIR}) is part of a git repository!"
-        echo "Do *not* forget to check if you need to commit / push anything!"
-        echo -e '\e[0m'
-        echo "REMEMBER! Post-merging or rebasing CA repositories is more often than not impossible!"
-        echo "Go to ${PDIR} *now* to check!"
+        echo -e '\007\e[31m' >&2
+        echo "The working folder (${PDIR}) is part of a git repository!" >&2
+        echo "Do *not* forget to check if you need to commit / push anything!" >&2
+        echo -e '\e[0m' >&2
+        echo "REMEMBER! Post-merging or rebasing CA repositories is more often than not impossible!" >&2
+        echo "Go to ${PDIR} *now* to check!" >&2
     fi
 }
 
@@ -183,19 +183,30 @@ case "${1}" in
     ;;
 
     sign)   # Sign a supplied CSR
-        if [ ! -f "$(basename "${2}" .csr).csr" ]; then
-            echo "Can't find ${2} or it isn't a CSR"
-            exit 2
-        fi
-        echo "[${self}] Signing ${2} with ${CA} CA..."
-        if $INTER; then
-            openssl ca -batch -policy policy_anything -config "${CONF}" -in "${2}" -out "$(basename "${2}" \
-                .csr).crt" || exit $?
+        if [ "${2}" = "-" ]; then
+            echo "[${self}] Signing request with ${CA} CA..." >&2
+            if $INTER; then
+                openssl ca -batch -policy policy_anything -config "${CONF}" -in /dev/stdin || exit $?
+            else
+                openssl ca -batch -config "${CONF}" -in /dev/stdin || exit $?
+            fi
+            echo >&2
+            echo "Done." >&2
         else
-            openssl ca -batch -config "${CONF}" -in "${2}" -out "$(basename "${2}" .csr).crt" || exit $?
+            if [ ! -f "$(basename "${2}" .csr).csr" ]; then
+                echo "Can't find ${2} or it isn't a CSR"
+                exit 2
+            fi
+            echo "[${self}] Signing ${2} with ${CA} CA..."
+            if $INTER; then
+                openssl ca -batch -policy policy_anything -config "${CONF}" -in "${2}" -out "$(basename "${2}" \
+                    .csr).crt" || exit $?
+            else
+                openssl ca -batch -config "${CONF}" -in "${2}" -out "$(basename "${2}" .csr).crt" || exit $?
+            fi
+            echo
+            echo "Done."
         fi
-        echo
-        echo "Done."
         git_check
     ;;
 
