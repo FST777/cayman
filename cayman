@@ -22,6 +22,7 @@ usage() {
     echo "  list              List all signed certificates with their serial and validity"
     echo "  list-revoked      List all revoked certificates"
     echo "  revoke <serial>   Revoke the certificate matching <serial>"
+    echo "  gencrl            Regenerate a CA's CRL"
     echo "  help              Show this help"
 }
 
@@ -234,6 +235,14 @@ case "${1}" in
         echo "[${self}] Revoking serial ${2} (${cname}) by ${CA} CA..."
         openssl ca -config "${CONF}" -revoke "${CA_DIR}/newcerts/${2}.pem" || exit $?
         echo
+        echo "[${self}] Generating ${CA} CA's CRL"
+        openssl ca -config "${CONF}" -gencrl -out "${CA_DIR}/crl.pem" || exit $?
+        echo
+        echo "Done."
+        git_check
+    ;;
+
+    gencrl)
         echo "[${self}] Generating ${CA} CA's CRL"
         openssl ca -config "${CONF}" -gencrl -out "${CA_DIR}/crl.pem" || exit $?
         echo
