@@ -51,6 +51,11 @@ You can build the container with something like:
 or:  
 `# docker build -t cayman .`
 
+Alternatively, pull the image from the [Docker Hub](https://hub.docker.com/r/fst777/cayman):  
+`% podman pull fst777/cayman`  
+or:  
+`# docker pull fst777/cayman`
+
 You can then run the container with:  
 `% podman run -d --env-file environment --name caycnt cayman`  
 or:  
