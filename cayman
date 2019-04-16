@@ -18,7 +18,7 @@ usage() {
     echo "Valid commands are:"
     echo "  init              Initialise the specified CA"
     echo "  reinit            Reissue the specified CA (in case of expiry or similar)"
-    echo "  sign              Sign a supplied *.csr file (use - for STDIN)"
+    echo "  sign [<file>]     Sign a supplied *.csr file (use - for STDIN) or \$CSR"
     echo "  list              List all signed certificates with their serial and validity"
     echo "  list-revoked      List all revoked certificates"
     echo "  revoke <serial>   Revoke the certificate matching <serial>"
@@ -185,7 +185,20 @@ case "${1}" in
     ;;
 
     sign)   # Sign a supplied CSR
-        if [ "${2}" = "-" ]; then
+        if [ -z "${2}" ]; then
+            if [ -z "${CSR}" ]; then
+                echo "No filename given and CSR environment variable is empty" >&2
+                exit 2
+            fi
+            echo "[${self}] Signing request with ${CA} CA..." >&2
+            if $INTER; then
+                echo "${CSR}" | openssl ca -batch -policy policy_anything -config "${CONF}" -in /dev/stdin || exit $?
+            else
+                echo "${CSR}" | openssl ca -batch -config "${CONF}" -in /dev/stdin || exit $?
+            fi
+            echo >&2
+            echo "Done." >&2
+        elif [ "${2}" = "-" ]; then
             echo "[${self}] Signing request with ${CA} CA..." >&2
             if $INTER; then
                 openssl ca -batch -policy policy_anything -config "${CONF}" -in /dev/stdin || exit $?
