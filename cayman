@@ -192,9 +192,9 @@ case "${1}" in
             fi
             echo "[${self}] Signing request with ${CA} CA..." >&2
             if $INTER; then
-                echo "${CSR}" | openssl ca -batch -policy policy_anything -config "${CONF}" -in /dev/stdin || exit $?
+                echo "${CSR}" | openssl ca -batch -policy policy_anything -config "${CONF}" -in /dev/stdin > /dev/null || exit $?
             else
-                echo "${CSR}" | openssl ca -batch -config "${CONF}" -in /dev/stdin || exit $?
+                echo "${CSR}" | openssl ca -batch -config "${CONF}" -in /dev/stdin > /dev/null || exit $?
             fi
             echo >&2
             echo "Done." >&2
