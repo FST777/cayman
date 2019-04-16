@@ -89,7 +89,7 @@ or:
 `# docker exec -tie CSR=$(cat request.csr) caycnt cayman -i HTTPS sign`  
 `# docker exec -ti caycnt cayman -i HTTPS list`  
 `# docker exec -ti caycnt cayman -i HTTPS echo 01`  
-`# docker exec -ti caycnt cayman -i HTTPS revoke 01`  
+`# docker exec -ti caycnt cayman -i HTTPS revoke 01`
 
 ## License
 
