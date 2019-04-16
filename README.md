@@ -6,8 +6,8 @@ certificates in a semi-standardized way.
 
 # Set up
 
-Put `cayman`, `cayman.conf` and `cayman-openssl.cnf` somewhere together and
-edit `cayman.conf` to reflect the details of your operation.
+Put `cayman`, `cayman.conf` and `openssl.conf` somewhere together and edit
+`cayman.conf` to reflect the details of your operation.
 
 As per the usage, initialize your first top-level CA with `cayman init`.
 
@@ -28,10 +28,12 @@ Valid options are:
 Valid commands are:
   init              Initialise the specified CA
   reinit            Reissue the specified CA (in case of expiry or similar)
-  sign              Sign a supplied *.csr file
+  sign [<file>]     Sign a supplied *.csr file (use - for STDIN) or \$CSR
   list              List all signed certificates with their serial and validity
   list-revoked      List all revoked certificates
   revoke <serial>   Revoke the certificate matching <serial>
+  gencrl            Regenerate a CA's CRL
+  echo <serial>     Output the certificate matching <serial>
   help              Show this help
 ```
 
