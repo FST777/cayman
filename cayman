@@ -23,6 +23,7 @@ usage() {
     echo "  list-revoked      List all revoked certificates"
     echo "  revoke <serial>   Revoke the certificate matching <serial>"
     echo "  gencrl            Regenerate a CA's CRL"
+    echo "  echo <serial>     Output the certificate matching <serial>"
     echo "  help              Show this help"
 }
 
@@ -248,6 +249,14 @@ case "${1}" in
         echo
         echo "Done."
         git_check
+    ;;
+
+    echo)
+        if [ ! -f "${CA_DIR}/newcerts/${2}.pem" ]; then
+            echo "No such serial: ${2}" >&2
+            exit 2
+        fi
+        cat "${CA_DIR}/newcerts/${2}.pem"
     ;;
 
     help)
