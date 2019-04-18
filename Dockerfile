@@ -2,24 +2,21 @@
 FROM nginx:alpine
 LABEL maintainer="Frans-Jan van Steenbeek <frans-jan@van-steenbeek.net>"
 
-# Install OpenSSL and cayman
-RUN apk add --no-cache --update openssl
-COPY cayman /usr/local/bin/cayman
+# Install OpenSSL and create the data folder
+RUN apk add --no-cache --update openssl && \
+  mkdir -p /usr/local/share/cayman/CA
 
-# Set up /usr/local/share/cayman
-RUN mkdir -p /usr/local/share/cayman/CA
-COPY cayman.conf /usr/local/share/cayman/cayman.conf
-COPY openssl.conf /usr/local/share/cayman/openssl.conf
+# Copy files
+COPY cayman /usr/local/bin/cayman
+COPY cayman.conf openssl.conf /usr/local/share/cayman/
+COPY nginx.conf /etc/nginx/conf.d/cayman.conf
 
 # Make cayman.conf container-proof
-RUN echo >> /usr/local/share/cayman/cayman.conf
-RUN echo '# Docker overrides' >> /usr/local/share/cayman/cayman.conf
-RUN echo 'PDIR="/usr/local/share/cayman/CA/"' >> /usr/local/share/cayman/cayman.conf
-RUN echo 'CONF="/usr/local/share/cayman/openssl.conf"' >> /usr/local/share/cayman/cayman.conf
-
-# Other config files
-RUN ln -s /usr/local/share/cayman/cayman.conf /usr/local/bin/cayman.conf
-COPY nginx.conf /etc/nginx/conf.d/cayman.conf
+RUN echo >> /usr/local/share/cayman/cayman.conf && \
+  echo '# Docker overrides' >> /usr/local/share/cayman/cayman.conf && \
+  echo 'PDIR="/usr/local/share/cayman/CA/"' >> /usr/local/share/cayman/cayman.conf && \
+  echo 'CONF="/usr/local/share/cayman/openssl.conf"' >> /usr/local/share/cayman/cayman.conf && \
+  ln -s /usr/local/share/cayman/cayman.conf /usr/local/bin/cayman.conf
 
 # Make /usr/local/share/cayman a volume
 VOLUME /usr/local/share/cayman
