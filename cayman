@@ -23,7 +23,8 @@ usage() {
     echo "  list-revoked      List all revoked certificates"
     echo "  revoke <serial>   Revoke the certificate matching <serial>"
     echo "  gencrl            Regenerate a CA's CRL"
-    echo "  echo <serial>     Output the certificate matching <serial>"
+    echo "  getca             Output the CA certificate"
+    echo "  getcert <serial>  Output the certificate matching <serial>"
     echo "  help              Show this help"
 }
 
@@ -197,6 +198,13 @@ case "${1}" in
                 echo "${CSR}" | openssl ca -batch -config "${CONF}" -in /dev/stdin > /dev/null || exit $?
             fi
             echo >&2
+            echo "Serial is: $(cat "${CA_DIR}/serial.old")" >&2
+            if $INTER; then
+                echo "You can get the certificate via: \`${self} -i ${CA} getcert $(cat "${CA_DIR}/serial.old")\`" >&2
+            else
+                echo "You can get the certificate via: \`${self} $(cat "${CA_DIR}/serial.old")\`" >&2
+            fi
+            echo >&2
             echo "Done." >&2
         elif [ "${2}" = "-" ]; then
             echo "[${self}] Signing request with ${CA} CA..." >&2
@@ -264,7 +272,15 @@ case "${1}" in
         git_check
     ;;
 
-    echo)
+    getca)
+        if [ ! -f "${CA_DIR}/ca.crt" ]; then
+            echo "Certificate for ${CA} not found" >&2
+            exit 2
+        fi
+        cat "${CA_DIR}/ca.crt"
+    ;;
+
+    getcert)
         if [ ! -f "${CA_DIR}/newcerts/${2}.pem" ]; then
             echo "No such serial: ${2}" >&2
             exit 2

@@ -4,7 +4,7 @@
 that acts as a wrapper around OpenSSL to manage, sign and revoke CAs and
 certificates in a semi-standardized way.
 
-# Set up
+## Quickstart
 
 Put `cayman`, `cayman.conf` and `openssl.conf` somewhere together and edit
 `cayman.conf` to reflect the details of your operation.
@@ -33,7 +33,8 @@ Valid commands are:
   list-revoked      List all revoked certificates
   revoke <serial>   Revoke the certificate matching <serial>
   gencrl            Regenerate a CA's CRL
-  echo <serial>     Output the certificate matching <serial>
+  getca             Output the CA certificate
+  getcert <serial>  Output the certificate matching <serial>
   help              Show this help
 ```
 
@@ -81,14 +82,14 @@ something like:
 `% podman exec -t caycnt cayman -i HTTPS init`  
 `% podman exec -te CSR=$(cat request.csr) caycnt cayman -i HTTPS sign`  
 `% podman exec -t caycnt cayman -i HTTPS list`  
-`% podman exec -t caycnt cayman -i HTTPS echo 01`  
+`% podman exec -t caycnt cayman -i HTTPS getcert 01`  
 `% podman exec -t caycnt cayman -i HTTPS revoke 01`  
 or:  
 `# docker exec -ti caycnt cayman init`  
 `# docker exec -ti caycnt cayman -i HTTPS init`  
 `# docker exec -tie CSR=$(cat request.csr) caycnt cayman -i HTTPS sign`  
 `# docker exec -ti caycnt cayman -i HTTPS list`  
-`# docker exec -ti caycnt cayman -i HTTPS echo 01`  
+`# docker exec -ti caycnt cayman -i HTTPS getcert 01`  
 `# docker exec -ti caycnt cayman -i HTTPS revoke 01`
 
 ## License
