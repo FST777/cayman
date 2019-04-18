@@ -1,5 +1,6 @@
 # Source a nice small nginx base image
 FROM nginx:alpine
+LABEL maintainer="Frans-Jan van Steenbeek <frans-jan@van-steenbeek.net>"
 
 # Install OpenSSL and cayman
 RUN apk add --no-cache --update openssl
