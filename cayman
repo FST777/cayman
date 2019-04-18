@@ -216,16 +216,16 @@ case "${1}" in
             echo >&2
             echo "Done." >&2
         else
-            if [ ! -f "$(basename "${2}" .csr).csr" ]; then
+            if [ ! -f "$(dirname "${2}")/$(basename "${2}" .csr).csr" ]; then
                 echo "Can't find ${2} or it isn't a CSR"
                 exit 2
             fi
             echo "[${self}] Signing ${2} with ${CA} CA..."
             if $INTER; then
-                openssl ca -batch -policy policy_anything -config "${CONF}" -in "${2}" -out "$(basename "${2}" \
+                openssl ca -batch -policy policy_anything -config "${CONF}" -in "${2}" -out "$(dirname "${2}")/$(basename "${2}" \
                     .csr).crt" || exit $?
             else
-                openssl ca -batch -config "${CONF}" -in "${2}" -out "$(basename "${2}" .csr).crt" || exit $?
+                openssl ca -batch -config "${CONF}" -in "${2}" -out "$(dirname "${2}")/$(basename "${2}" .csr).crt" || exit $?
             fi
             echo
             echo "Done."
