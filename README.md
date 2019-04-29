@@ -92,6 +92,15 @@ or:
 `# docker exec -ti caycnt cayman -i HTTPS getcert 01`  
 `# docker exec -ti caycnt cayman -i HTTPS revoke 01`
 
+## Thanks
+
+Credits should go to two of my employers:
+- The first versions of this were quickly hacked together for internal use at
+  Spil Games. They later graciously agreed for it to be released as Open
+  Source software.
+- Again for internal use, cayman was dockerified and fleshed out a bit at
+  InterNLnet (part of Tele2 NL, now part of T-Mobile NL).
+
 ## License
 
 Like OpenSSL, this software is licensed under the terms of the [Apache License (v2.0)](LICENSE)
