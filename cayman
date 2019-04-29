@@ -125,14 +125,14 @@ case "${1}" in
 
             echo "[${self}] ${CA} is an intermediate, signing it..."
             export CA_DIR="${PDIR}/Root"    # Work on Root to sign ${CA}
-            openssl ca -batch -extensions v3_ca -config "${CONF}" -in "${PDIR}/Root/certs/${CA}.csr" -out \
+            openssl ca -batch -extensions v3_ca -config "${CONF}" -days "${INT_VAL}" -in "${PDIR}/Root/certs/${CA}.csr" -out \
                 "${PDIR}/Root/certs/${CA}.crt" || exit $?
             export CA_DIR="${PDIR}/${CA}"
             rm "${PDIR}/Root/certs/${CA}.csr"
             cp "${PDIR}/Root/certs/${CA}.crt" "${CA_DIR}/ca.crt"
             echo
         else
-            openssl req -config "${CONF}" -days 1825 -x509 -newkey rsa:4096 -out "${CA_DIR}/ca.crt" -outform PEM ||
+            openssl req -config "${CONF}" -days "${RCA_VAL}" -x509 -newkey rsa:4096 -out "${CA_DIR}/ca.crt" -outform PEM ||
                 exit $?
             echo
         fi
@@ -167,14 +167,14 @@ case "${1}" in
 
             echo "[${self}] ${CA} is an intermediate, signing it..."
             export CA_DIR="${PDIR}/Root"    # Work on Root to sign ${CA}
-            openssl ca -batch -extensions v3_ca -config "${CONF}" -in "${PDIR}/Root/certs/${CA}.csr" -out \
+            openssl ca -batch -extensions v3_ca -config "${CONF}" -days "${INT_VAL}" -in "${PDIR}/Root/certs/${CA}.csr" -out \
                 "${PDIR}/Root/certs/${CA}.crt" || exit $?
             export CA_DIR="${PDIR}/${CA}"
             rm "${PDIR}/Root/certs/${CA}.csr"
             cp "${PDIR}/Root/certs/${CA}.crt" "${CA_DIR}/ca.crt"
             echo
         else
-            openssl req -config "${CONF}" -days 1825 -x509 -new -key "${CA_DIR}/private/ca-key.pem" -out \
+            openssl req -config "${CONF}" -days "${RCA_VAL}" -x509 -new -key "${CA_DIR}/private/ca-key.pem" -out \
                 "${CA_DIR}/ca.crt" -outform PEM || exit $?
             echo
         fi
