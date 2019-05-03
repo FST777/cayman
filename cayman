@@ -1,6 +1,18 @@
 #!/usr/bin/env sh
 
-source "$(dirname "${0}")/$(basename "${0}").conf"
+# Get configuration from either /etc or /usr/local/etc
+if [ -r "/etc/$(basename "${0}").conf" ]; then
+    source "/etc/$(basename "${0}").conf"
+elif [ -r "/usr/local/etc/$(basename "${0}").conf" ]; then
+    source "/usr/local/etc/$(basename "${0}").conf"
+fi
+
+# Override configuration (or get it) from $HOME or `pwd`
+if [ -r "${HOME}/$(basename "${0}").conf" ]; then
+    source "${HOME}/$(basename "${0}").conf"
+elif [ -r "$(dirname "${0}")/$(basename "${0}").conf" ]; then
+    source "$(dirname "${0}")/$(basename "${0}").conf"
+fi
 
 # Help!
 usage() {
