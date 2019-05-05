@@ -112,6 +112,9 @@ export CA
 export PDIR
 export CA_DIR="${PDIR}/${CA}"
 
+# Get CA's password from environment. This is almost always very insecure!
+export CAPWD="$(eval "echo \${CAPWD_${CA}}")"
+
 #Commands
 case "${1}" in
     init)   # Initialise the CA
@@ -131,25 +134,29 @@ case "${1}" in
 
         echo "[${self}] Creating ${CA} CA..."
         if $INTER; then
-            openssl req -config "${CONF}" -newkey rsa:4096 -out "${PDIR}/Root/certs/${CA}.csr" -outform PEM ||
-                exit $?
+            openssl req -config "${CONF}" -newkey rsa:4096 \
+                $([ -n "${CAPWD}" ] && echo "-passout env:CAPWD") -out "${PDIR}/Root/certs/${CA}.csr" \
+                -outform PEM || exit $?
             echo
 
             echo "[${self}] ${CA} is an intermediate, signing it..."
             export CA_DIR="${PDIR}/Root"    # Work on Root to sign ${CA}
-            openssl ca -batch -extensions v3_ca -config "${CONF}" -days "${INT_VAL}" -in "${PDIR}/Root/certs/${CA}.csr" -out \
-                "${PDIR}/Root/certs/${CA}.crt" || exit $?
+            openssl ca -batch -extensions v3_ca -config "${CONF}" \
+                $([ -n "${CAPWD_Root}" ] && echo "-passin env:CAPWD_Root") -days "${INT_VAL}" \
+                -in "${PDIR}/Root/certs/${CA}.csr" -out "${PDIR}/Root/certs/${CA}.crt" || exit $?
             export CA_DIR="${PDIR}/${CA}"
             rm "${PDIR}/Root/certs/${CA}.csr"
             cp "${PDIR}/Root/certs/${CA}.crt" "${CA_DIR}/ca.crt"
             echo
         else
-            openssl req -config "${CONF}" -days "${RCA_VAL}" -x509 -newkey rsa:4096 -out "${CA_DIR}/ca.crt" -outform PEM ||
-                exit $?
+            openssl req -config "${CONF}" -days "${RCA_VAL}" -x509 -newkey rsa:4096 \
+                $([ -n "${CAPWD}" ] && echo "-passout env:CAPWD") -out "${CA_DIR}/ca.crt" \
+                -outform PEM || exit $?
             echo
         fi
         echo "[${self}] Generating ${CA} CA's CRL"
-        openssl ca -config "${CONF}" -gencrl -out "${CA_DIR}/crl.pem" || exit $?
+        openssl ca -config "${CONF}" $([ -n "${CAPWD}" ] && echo "-passin env:CAPWD") -gencrl \
+            -out "${CA_DIR}/crl.pem" || exit $?
         echo
         echo "Done."
         git_check
@@ -163,35 +170,39 @@ case "${1}" in
 
         echo "[${self}] Reissuing ${CA} CA..."
         if $INTER; then
-            openssl req -config "${CONF}" -new -key "${CA_DIR}/private/ca-key.pem" -out \
-                "${PDIR}/Root/certs/${CA}.csr" -outform PEM || exit $?
+            openssl req -config "${CONF}" -new -key "${CA_DIR}/private/ca-key.pem" \
+                $([ -n "${CAPWD}" ] && echo "-passin env:CAPWD") -out "${PDIR}/Root/certs/${CA}.csr" \
+                -outform PEM || exit $?
             echo
 
             echo "[${self}] Revoking ${CA} CA..."
             export CA_DIR="${PDIR}/Root"    # Work on Root to revoke ${CA}
             serial="$(grep "${CA} CA" "${CA_DIR}/index.txt" | egrep "^V" | cut -f 4)"
-            openssl ca -config "${CONF}" -revoke "${CA_DIR}/newcerts/${serial}.pem" || exit $?
+            openssl ca -config "${CONF}" $([ -n "${CAPWD_Root}" ] && echo "-passin env:CAPWD_Root") \
+                -revoke "${CA_DIR}/newcerts/${serial}.pem" || exit $?
             echo
             echo "[${self}] Generating Root CA's CRL"
-            openssl ca -config "${CONF}" -gencrl -out "${CA_DIR}/crl.pem" || exit $?
-            export CA_DIR="${PDIR}/${CA}"
+            openssl ca -config "${CONF}" $([ -n "${CAPWD_Root}" ] && echo "-passin env:CAPWD_Root") -gencrl \
+                -out "${CA_DIR}/crl.pem" || exit $?
             echo
 
             echo "[${self}] ${CA} is an intermediate, signing it..."
-            export CA_DIR="${PDIR}/Root"    # Work on Root to sign ${CA}
-            openssl ca -batch -extensions v3_ca -config "${CONF}" -days "${INT_VAL}" -in "${PDIR}/Root/certs/${CA}.csr" -out \
-                "${PDIR}/Root/certs/${CA}.crt" || exit $?
+            openssl ca -batch -extensions v3_ca -config "${CONF}" \
+                $([ -n "${CAPWD_Root}" ] && echo "-passin env:CAPWD_Root") -days "${INT_VAL}" \
+                -in "${PDIR}/Root/certs/${CA}.csr" -out "${PDIR}/Root/certs/${CA}.crt" || exit $?
             export CA_DIR="${PDIR}/${CA}"
             rm "${PDIR}/Root/certs/${CA}.csr"
             cp "${PDIR}/Root/certs/${CA}.crt" "${CA_DIR}/ca.crt"
             echo
         else
-            openssl req -config "${CONF}" -days "${RCA_VAL}" -x509 -new -key "${CA_DIR}/private/ca-key.pem" -out \
-                "${CA_DIR}/ca.crt" -outform PEM || exit $?
+            openssl req -config "${CONF}" -days "${RCA_VAL}" -x509 -new -key "${CA_DIR}/private/ca-key.pem" \
+                $([ -n "${CAPWD}" ] && echo "-passin env:CAPWD") -out "${CA_DIR}/ca.crt" -outform PEM ||
+                exit $?
             echo
         fi
         echo "[${self}] Generating ${CA} CA's CRL"
-        openssl ca -config "${CONF}" -gencrl -out "${CA_DIR}/crl.pem" || exit $?
+        openssl ca -config "${CONF}" $([ -n "${CAPWD}" ] && echo "-passin env:CAPWD") -gencrl \
+            -out "${CA_DIR}/crl.pem" || exit $?
         echo
         echo "Done."
         git_check
@@ -205,25 +216,29 @@ case "${1}" in
             fi
             echo "[${self}] Signing request with ${CA} CA..." >&2
             if $INTER; then
-                echo "${CSR}" | openssl ca -batch -policy policy_anything -config "${CONF}" -in /dev/stdin > /dev/null || exit $?
+                echo "${CSR}" | openssl ca -batch -policy policy_anything -config "${CONF}" \
+                    $([ -n "${CAPWD}" ] && echo "-passin env:CAPWD") -in /dev/stdin > /dev/null || exit $?
             else
-                echo "${CSR}" | openssl ca -batch -config "${CONF}" -in /dev/stdin > /dev/null || exit $?
+                echo "${CSR}" | openssl ca -batch -config "${CONF}" \
+                    $([ -n "${CAPWD}" ] && echo "-passin env:CAPWD") -in /dev/stdin > /dev/null || exit $?
             fi
             echo >&2
             echo "Serial is: $(cat "${CA_DIR}/serial.old")" >&2
             if $INTER; then
-                echo "You can get the certificate via: \`${self} -i ${CA} getcert $(cat "${CA_DIR}/serial.old")\`" >&2
+                echo "To get the certificate, run: \`${self} -i ${CA} getcert $(cat "${CA_DIR}/serial.old")\`" >&2
             else
-                echo "You can get the certificate via: \`${self} $(cat "${CA_DIR}/serial.old")\`" >&2
+                echo "To get the certificate, run: \`${self} getcert $(cat "${CA_DIR}/serial.old")\`" >&2
             fi
             echo >&2
             echo "Done." >&2
         elif [ "${2}" = "-" ]; then
             echo "[${self}] Signing request with ${CA} CA..." >&2
             if $INTER; then
-                openssl ca -batch -policy policy_anything -config "${CONF}" -in /dev/stdin || exit $?
+                openssl ca -batch -policy policy_anything -config "${CONF}" \
+                    $([ -n "${CAPWD}" ] && echo "-passin env:CAPWD") -in /dev/stdin || exit $?
             else
-                openssl ca -batch -config "${CONF}" -in /dev/stdin || exit $?
+                openssl ca -batch -config "${CONF}" \
+                    $([ -n "${CAPWD}" ] && echo "-passin env:CAPWD") -in /dev/stdin || exit $?
             fi
             echo >&2
             echo "Done." >&2
@@ -234,10 +249,13 @@ case "${1}" in
             fi
             echo "[${self}] Signing ${2} with ${CA} CA..."
             if $INTER; then
-                openssl ca -batch -policy policy_anything -config "${CONF}" -in "${2}" -out "$(dirname "${2}")/$(basename "${2}" \
-                    .csr).crt" || exit $?
+                openssl ca -batch -policy policy_anything -config "${CONF}" \
+                    $([ -n "${CAPWD}" ] && echo "-passin env:CAPWD") -in "${2}" \
+                    -out "$(dirname "${2}")/$(basename "${2}" .csr).crt" || exit $?
             else
-                openssl ca -batch -config "${CONF}" -in "${2}" -out "$(dirname "${2}")/$(basename "${2}" .csr).crt" || exit $?
+                openssl ca -batch -config "${CONF}" \
+                    $([ -n "${CAPWD}" ] && echo "-passin env:CAPWD") -in "${2}" \
+                    -out "$(dirname "${2}")/$(basename "${2}" .csr).crt" || exit $?
             fi
             echo
             echo "Done."
@@ -267,10 +285,12 @@ case "${1}" in
         cname=$(cat "${CA_DIR}/index.txt" | cut -f 4,6 | sed 's|\t/.*/CN=|\t|g;s|/.*||g' | egrep "^${2}" | cut \
             -f 2)
         echo "[${self}] Revoking serial ${2} (${cname}) by ${CA} CA..."
-        openssl ca -config "${CONF}" -revoke "${CA_DIR}/newcerts/${2}.pem" || exit $?
+        openssl ca -config "${CONF}" $([ -n "${CAPWD}" ] && echo "-passin env:CAPWD") \
+            -revoke "${CA_DIR}/newcerts/${2}.pem" || exit $?
         echo
         echo "[${self}] Generating ${CA} CA's CRL"
-        openssl ca -config "${CONF}" -gencrl -out "${CA_DIR}/crl.pem" || exit $?
+        openssl ca -config "${CONF}" $([ -n "${CAPWD}" ] && echo "-passin env:CAPWD") -gencrl \
+            -out "${CA_DIR}/crl.pem" || exit $?
         echo
         echo "Done."
         git_check
@@ -278,7 +298,8 @@ case "${1}" in
 
     gencrl)
         echo "[${self}] Generating ${CA} CA's CRL"
-        openssl ca -config "${CONF}" -gencrl -out "${CA_DIR}/crl.pem" || exit $?
+        openssl ca -config "${CONF}" $([ -n "${CAPWD}" ] && echo "-passin env:CAPWD") -gencrl \
+            -out "${CA_DIR}/crl.pem" || exit $?
         echo
         echo "Done."
         git_check

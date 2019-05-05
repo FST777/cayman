@@ -38,6 +38,11 @@ Valid commands are:
   help              Show this help
 ```
 
+## Passwords
+For insecure setups, `cayman` can read the passwords for the CAs from the
+environment. Passwords can be set in the form of `$CAPWD_<intermediate>` (use
+`$CAPWD_Root` for the Root CA).
+
 ## Docker, buildah/podman, container stuffs
 
 The supplied `Dockerfile` will create a container that contains `cayman` as
@@ -75,6 +80,7 @@ CA_UNIT=Black Smokers
 CA_MAIL=black.smokers@dbc.int
 URL_PRE=https://dbc.int/ssl
 ```
+This file can also contain passwords to the CAs as described above.
 
 With a running cayman container, you can launch regular `cayman` commands using
 something like:  
