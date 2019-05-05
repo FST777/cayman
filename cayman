@@ -321,6 +321,14 @@ case "${1}" in
         cat "${CA_DIR}/newcerts/${2}.pem"
     ;;
 
+    getchain)
+        openssl x509 -in "${CA_DIR}/newcerts/${2}.pem"
+        openssl x509 -in "${CA_DIR}/ca.crt"
+        if $INTER; then
+            openssl x509 -in "${PDIR}/Root/ca.crt"
+        fi
+    ;;
+
     help)
         usage
     ;;
