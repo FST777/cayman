@@ -39,6 +39,7 @@ usage() {
     echo "  gencrl            Regenerate a CA's CRL"
     echo "  getca             Output the CA certificate"
     echo "  getcert <serial>  Output the certificate matching <serial>"
+    echo "  getchain <serial> Output a certificate chain for <serial>"
     echo "  help              Show this help"
 }
 

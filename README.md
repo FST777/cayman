@@ -35,6 +35,7 @@ Valid commands are:
   gencrl            Regenerate a CA's CRL
   getca             Output the CA certificate
   getcert <serial>  Output the certificate matching <serial>
+  getchain <serial> Output a certificate chain for <serial>
   help              Show this help
 ```
 
