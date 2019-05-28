@@ -34,10 +34,18 @@ Valid commands are:
   revoke <serial>   Revoke the certificate matching <serial>
   gencrl            Regenerate a CA's CRL
   getca             Output the CA certificate
+  expires <days>    Print certificates that will have been expired after <days>
   getcert <serial>  Output the certificate matching <serial>
   getchain <serial> Output a certificate chain for <serial>
   help              Show this help
 ```
+
+Note that `expires` outputs certificates that will have been expired after
+`<days>` days from now, one per line with the following tab-separated fields:
+email address, serial, subject and expiry date. If the certificate has no
+associated email address, the email address of the CA will be output instead.
+This format is intentionally not very readable, unless you are a machine or a
+script.
 
 ## Passwords
 For insecure setups, `cayman` can read the passwords for the CAs from the

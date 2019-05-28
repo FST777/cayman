@@ -38,6 +38,7 @@ usage() {
     echo "  revoke <serial>   Revoke the certificate matching <serial>"
     echo "  gencrl            Regenerate a CA's CRL"
     echo "  getca             Output the CA certificate"
+    echo "  expires <days>    Print certificates that will have been expired after <days>"
     echo "  getcert <serial>  Output the certificate matching <serial>"
     echo "  getchain <serial> Output a certificate chain for <serial>"
     echo "  help              Show this help"
@@ -314,6 +315,26 @@ case "${1}" in
             exit 2
         fi
         cat "${CA_DIR}/ca.crt"
+    ;;
+
+    expires)
+        if [ -z "${2}" ]; then
+            seconds=0
+        else
+            seconds=$(( 86400 * ${2} ))
+        fi
+        for s in $(cat "${CA_DIR}/index.txt" | egrep "^V" | cut -f 4); do
+            cert="${CA_DIR}/newcerts/${s}.pem"
+            if ! openssl x509 -noout -checkend ${seconds} -in "${cert}" > /dev/null; then
+                email="$(openssl x509 -noout -email -in "${cert}")"
+                if [ -z "${email}" ]; then
+                    email="$(openssl x509 -noout -email -in "${CA_DIR}/ca.crt")"
+                fi
+                subject="$(openssl x509 -noout -subject -in "${cert}" | sed 's/^subject=//')"
+                enddate="$(openssl x509 -noout -enddate -in "${cert}" | sed 's/^notAfter=//')"
+                echo -e "${email}\t${s}\t${subject}\t${enddate}"
+            fi
+        done
     ;;
 
     getcert)
