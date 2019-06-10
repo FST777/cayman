@@ -1,22 +1,32 @@
 #!/usr/bin/env sh
 
+# These should probably be left alone
+CA="Root"
+INTER=false
+self="$(basename "${0}")"
+dir="$(dirname "$(readlink -f "${0}")")"
+
 # Get configuration from either /etc or /usr/local/etc or git repo
-if [ -r "/etc/$(basename "${0}").conf" ]; then
-    . "/etc/$(basename "${0}").conf"
-elif [ -r "/usr/local/etc/$(basename "${0}").conf" ]; then
-    . "/usr/local/etc/$(basename "${0}").conf"
-elif [ -r "$(dirname "${0}")/$(basename "${0}").conf" ]; then
-    . "$(dirname "${0}")/$(basename "${0}").conf"
+if [ -r "/etc/${self}.conf" ]; then
+    . "/etc/${self}.conf"
+elif [ -r "/usr/local/etc/${self}.conf" ]; then
+    . "/usr/local/etc/${self}.conf"
+elif [ -r "${dir}/${self}.conf" ]; then
+    . "${dir}/${self}.conf"
 fi
 
 # Override configuration (or get it) from $HOME
-if [ -r "${HOME}/.$(basename "${0}").conf" ]; then
-    . "${HOME}/.$(basename "${0}").conf"
-elif [ -r "${HOME}/.config/$(basename "${0}").conf" ]; then
-    . "${HOME}/$(basename "${0}").conf"
-elif [ -r "${HOME}/$(basename "${0}").conf" ]; then
-    . "${HOME}/$(basename "${0}").conf"
+if [ -r "${HOME}/.${self}.conf" ]; then
+    . "${HOME}/.${self}.conf"
+elif [ -r "${HOME}/.config/${self}.conf" ]; then
+    . "${HOME}/${self}.conf"
+elif [ -r "${HOME}/${self}.conf" ]; then
+    . "${HOME}/${self}.conf"
 fi
+
+# Export variable used by OpenSSL
+export CA_PREF CA_CNTR CA_PROV CA_CITY CA_ORGA CA_UNIT CA_MAIL URL_PRE
+export RCA_VAL INT_VAL CRT_VAL CRL_VAL
 
 # Help!
 usage() {
