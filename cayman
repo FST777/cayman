@@ -1,19 +1,21 @@
 #!/usr/bin/env sh
 
-# Get configuration from either /etc or /usr/local/etc
+# Get configuration from either /etc or /usr/local/etc or git repo
 if [ -r "/etc/$(basename "${0}").conf" ]; then
     . "/etc/$(basename "${0}").conf"
 elif [ -r "/usr/local/etc/$(basename "${0}").conf" ]; then
     . "/usr/local/etc/$(basename "${0}").conf"
-fi
-
-# Override configuration (or get it) from $HOME or `pwd`
-if [ -r "${HOME}/.$(basename "${0}").conf" ]; then
-    . "${HOME}/.$(basename "${0}").conf"
-elif [ -r "${HOME}/$(basename "${0}").conf" ]; then
-    . "${HOME}/$(basename "${0}").conf"
 elif [ -r "$(dirname "${0}")/$(basename "${0}").conf" ]; then
     . "$(dirname "${0}")/$(basename "${0}").conf"
+fi
+
+# Override configuration (or get it) from $HOME
+if [ -r "${HOME}/.$(basename "${0}").conf" ]; then
+    . "${HOME}/.$(basename "${0}").conf"
+elif [ -r "${HOME}/.config/$(basename "${0}").conf" ]; then
+    . "${HOME}/$(basename "${0}").conf"
+elif [ -r "${HOME}/$(basename "${0}").conf" ]; then
+    . "${HOME}/$(basename "${0}").conf"
 fi
 
 # Help!
