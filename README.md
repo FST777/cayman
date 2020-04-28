@@ -82,12 +82,12 @@ named `environment`) that contains configuration normally managed in
 ```
 CA_PREF=Cayman
 CA_CNTR=XZ
-CA_PROV=Atlantic Ocean
-CA_CITY=Mid-Atlantic Ridge
-CA_ORGA=DivergentBoundary Corp
-CA_UNIT=Black Smokers
-CA_MAIL=black.smokers@dbc.int
-URL_PRE=https://dbc.int/ssl
+CA_PROV=Some Region
+CA_CITY=Some City
+CA_ORGA=Some Organization
+CA_UNIT=A Unit
+CA_MAIL=email@example.com
+URL_PRE=https://example.com/ssl
 ```
 This file can also contain passwords to the CAs as described above.
 
@@ -114,7 +114,7 @@ Credits should go to two of my employers:
   Spil Games. They later graciously agreed for it to be released as Open
   Source software.
 - Again for internal use, cayman was dockerified and fleshed out a bit at
-  InterNLnet (part of Tele2 NL, now part of T-Mobile NL).
+  InterNLnet (then part of Tele2 NL).
 
 ## License
 
