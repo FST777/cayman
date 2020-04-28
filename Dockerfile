@@ -2,7 +2,7 @@
 # Builder container #
 #####################
 
-FROM nginx:alpine AS builder
+FROM nginx:stable-alpine AS builder
 
 # Set up filesystem
 RUN mkdir -p /tmp/root/usr/local/share/cayman/CA
@@ -21,7 +21,7 @@ echo "[ -r /usr/local/share/cayman/cayman.conf ] && source /usr/local/share/caym
 # Cayman container #
 ####################
 
-FROM nginx:alpine
+FROM nginx:stable-alpine
 LABEL maintainer="Frans-Jan van Steenbeek <frans-jan@van-steenbeek.net>"
 
 # Install OpenSSL
