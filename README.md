@@ -35,6 +35,7 @@ Valid commands are:
   gencrl            Regenerate a CA's CRL
   getca             Output the CA certificate
   expires <days>    Print certificates that will have been expired after <days>
+  check <w> <c>     Nagios-style check for expires after <w> or <c> days
   getcert <serial>  Output the certificate matching <serial>
   getchain <serial> Output a certificate chain for <serial>
   help              Show this help
@@ -114,7 +115,7 @@ Credits should go to two of my employers:
   Spil Games. They later graciously agreed for it to be released as Open
   Source software.
 - Again for internal use, cayman was dockerified and fleshed out a bit at
-  InterNLnet (then part of Tele2 NL).
+  InterNLnet.
 
 ## License
 

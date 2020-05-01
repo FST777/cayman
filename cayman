@@ -51,6 +51,7 @@ usage() {
     echo "  gencrl            Regenerate a CA's CRL"
     echo "  getca             Output the CA certificate"
     echo "  expires <days>    Print certificates that will have been expired after <days>"
+    echo "  check <w> <c>     Nagios-style check for expires after <w> or <c> days"
     echo "  getcert <serial>  Output the certificate matching <serial>"
     echo "  getchain <serial> Output a certificate chain for <serial>"
     echo "  help              Show this help"
@@ -108,6 +109,8 @@ while getopts ":c:d:i:h" opt; do
     esac
 done
 shift $((${OPTIND} - 1))    # Any non-option arguments are now just $1, $2, etc.
+
+[ "${1}" == "help" ] && usage && exit
 
 # Sanity checks
 if [ ! -r "${CONF}" ]; then
@@ -241,9 +244,9 @@ case "${1}" in
             echo >&2
             echo "Serial is: $(cat "${CA_DIR}/serial.old")" >&2
             if $INTER; then
-                echo "To get the certificate, run: \`${self} -i ${CA} getcert $(cat "${CA_DIR}/serial.old")\`" >&2
+                echo "To get the certificate, run: \`${self} -i ${CA} getcert $(cat "${CA_DIR}/serial.old") \`" >&2
             else
-                echo "To get the certificate, run: \`${self} getcert $(cat "${CA_DIR}/serial.old")\`" >&2
+                echo "To get the certificate, run: \`${self} getcert $(cat "${CA_DIR}/serial.old") \`" >&2
             fi
             echo >&2
             echo "Done." >&2
@@ -330,11 +333,7 @@ case "${1}" in
     ;;
 
     expires)
-        if [ -z "${2}" ]; then
-            seconds=0
-        else
-            seconds=$(( 86400 * ${2} ))
-        fi
+        seconds=$(( 86400 * ${2:-0} ))
         for s in $(cat "${CA_DIR}/index.txt" | egrep "^V" | cut -f 4); do
             cert="${CA_DIR}/newcerts/${s}.pem"
             if ! openssl x509 -noout -checkend ${seconds} -in "${cert}" > /dev/null; then
@@ -347,6 +346,72 @@ case "${1}" in
                 echo -e "${email}\t${s}\t${subject}\t${enddate}"
             fi
         done
+    ;;
+
+    check)
+        seconds_crit=$(( 86400 * ${2:-7}))
+        seconds_warn=$(( 86400 * ${3:-31}))
+        result=0
+        critcount=0; critlist=""
+        warncount=0; warnlist=""
+        if [ ! -r "${CA_DIR}/index.txt" ]; then
+            echo "UNKNOWN: Could not read ${CA_DIR}/index.txt."
+            exit 3
+        fi
+        for s in $(cat "${CA_DIR}/index.txt" | egrep "^V" | cut -f 4); do
+            cert="${CA_DIR}/newcerts/${s}.pem"
+            if [ ! -r "${cert}" ]; then
+                echo "UNKNOWN: Could not read ${cert}."
+                exit 3
+            fi
+            if ! openssl x509 -noout -checkend ${seconds_crit} -in "${cert}" > /dev/null; then
+                result=2
+                critcount=$((${critcount} + 1))
+                cn="$(openssl x509 -noout -subject -nameopt multiline -in "${cert}" | \
+                  sed -n 's/[[:space:]]*commonName[[:space:]]*=[[:space:]]//p')"
+                email="$(openssl x509 -noout -email -in "${cert}")"
+                enddate="$(openssl x509 -noout -enddate -in "${cert}" | sed 's/^notAfter=//')"
+                critlist="${critlist}\n${s}: ${enddate}: ${cn} (${email})"
+            elif ! openssl x509 -noout -checkend ${seconds_warn} -in "${cert}" > /dev/null; then
+                [ ! ${result} -eq 2 ] && result=1
+                warncount=$((${warncount} + 1))
+                cn="$(openssl x509 -noout -subject -nameopt multiline -in "${cert}" | \
+                  sed -n 's/[[:space:]]*commonName[[:space:]]*=[[:space:]]//p')"
+                email="$(openssl x509 -noout -email -in "${cert}")"
+                enddate="$(openssl x509 -noout -enddate -in "${cert}" | sed 's/^notAfter=//')"
+                warnlist="${warnlist}\n${s}: ${enddate}: ${cn} (${email})"
+            fi
+        done
+        case ${result} in
+            0)
+                echo "OK: No certificates are about to expire."
+                exit 0
+            ;;
+            1)
+                if [ ${warncount} -eq 1 ]; then
+                    echo "WARNING: ${warncount} certificate is about to expire."
+                else
+                    echo "WARNING: ${warncount} certificates are about to expire."
+                fi
+                echo -e "${warnlist}"
+                exit 1
+            ;;
+            2)
+                totalcount=$((${warncount} + ${critcount}))
+                if [ ${totalcount} -eq 1 ]; then
+                    echo "CRITICAL: ${totalcount} certificate is about to expire, of which ${critcount} imminently."
+                else
+                    echo "CRITICAL: ${totalcount} certificates are about to expire, of which ${critcount} imminently."
+                fi
+                echo -e "${critlist}"
+                echo -e "${warnlist}"
+                exit 2
+            ;;
+            *)
+                echo "UNKNOWN: unknown error."
+                exit 3
+            ;;
+        esac
     ;;
 
     getcert)
