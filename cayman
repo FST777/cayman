@@ -51,7 +51,7 @@ usage() {
     echo "  gencrl            Regenerate a CA's CRL"
     echo "  getca             Output the CA certificate"
     echo "  expires <days>    Print certificates that will have been expired after <days>"
-    echo "  check <w> <c>     Nagios-style check for expires after <w> or <c> days"
+    echo "  check <c> <w>     Nagios-style check for expires after <c> or <w> days"
     echo "  getcert <serial>  Output the certificate matching <serial>"
     echo "  getchain <serial> Output a certificate chain for <serial>"
     echo "  help              Show this help"
