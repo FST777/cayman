@@ -1,10 +1,55 @@
 #!/usr/bin/env sh
 
 # These should probably be left alone
+version="20200503.01"
 CA="Root"
 INTER=false
 self="$(basename "${0}")"
 dir="$(dirname "$(readlink -f "${0}")")"
+
+# Help!
+usage() {
+    echo "Usage: ${self} [ options ... ] [COMMAND] [arguments]"
+    echo
+    echo "Valid options are:"
+    echo "  -c <config-file>  Specify the OpenSSL configuration to work with"
+    echo "                    (default: ${CONF})"
+    echo "  -d <folder>       Specify the folder to work on (default: ${PDIR})"
+    echo "                    This folder will hold the Root CA and intermediate"
+    echo "                    CAs as sub-folders."
+    echo "  -i <intermediate> Work on <intermediate> (instead of the Root CA)"
+    echo "  -h                Show this help"
+    echo "  -v                Show ${self}'s version: ${version}"
+    echo
+    echo "Valid commands are:"
+    echo "  init              Initialise the specified CA"
+    echo "  reinit            Reissue the specified CA (in case of expiry or similar)"
+    echo "  sign [<file>]     Sign a supplied *.csr file (use - for STDIN) or \$CSR"
+    echo "  list              List all signed certificates with their serial and validity"
+    echo "  list-revoked      List all revoked certificates"
+    echo "  revoke <serial>   Revoke the certificate matching <serial>"
+    echo "  gencrl            Regenerate a CA's CRL"
+    echo "  getca             Output the CA certificate"
+    echo "  expires <days>    Print certificates that will have been expired after <days>"
+    echo "  check <c> <w>     Nagios-style check for expires after <c> or <w> days"
+    echo "  getcert <serial>  Output the certificate matching <serial>"
+    echo "  getchain <serial> Output a certificate chain for <serial>"
+    echo "  help              Show this help"
+    echo "  version           Show ${self}'s version: ${version}"
+}
+
+# Function to check if we need to commit anything
+git_check() {
+    cd "${PDIR}"
+    if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+        echo -e '\007\e[31m' >&2
+        echo "The working folder (${PDIR}) is part of a git repository!" >&2
+        echo "Do *not* forget to check if you need to commit / push anything!" >&2
+        echo -e '\e[0m' >&2
+        echo "REMEMBER! Post-merging or rebasing CA repositories is more often than not impossible!" >&2
+        echo "Go to ${PDIR} *now* to check!" >&2
+    fi
+}
 
 # Get configuration from either /etc or /usr/local/etc or git repo
 if [ -r "/etc/${self}.conf" ]; then
@@ -24,54 +69,8 @@ elif [ -r "${HOME}/${self}.conf" ]; then
     . "${HOME}/${self}.conf"
 fi
 
-# Export variable used by OpenSSL
-export CA_PREF CA_CNTR CA_PROV CA_CITY CA_ORGA CA_UNIT CA_MAIL URL_PRE
-export RCA_VAL INT_VAL CRT_VAL CRL_VAL
-
-# Help!
-usage() {
-    echo "Usage: ${self} [ options ... ] [COMMAND] [arguments]"
-    echo
-    echo "Valid options are:"
-    echo "  -c <config-file>  Specify the OpenSSL configuration to work with"
-    echo "                    (default: ${CONF})"
-    echo "  -d <folder>       Specify the folder to work on (default: ${PDIR})"
-    echo "                    This folder will hold the Root CA and intermediate"
-    echo "                    CAs as sub-folders."
-    echo "  -i <intermediate> Work on <intermediate> (instead of the Root CA)"
-    echo "  -h                Show this help"
-    echo
-    echo "Valid commands are:"
-    echo "  init              Initialise the specified CA"
-    echo "  reinit            Reissue the specified CA (in case of expiry or similar)"
-    echo "  sign [<file>]     Sign a supplied *.csr file (use - for STDIN) or \$CSR"
-    echo "  list              List all signed certificates with their serial and validity"
-    echo "  list-revoked      List all revoked certificates"
-    echo "  revoke <serial>   Revoke the certificate matching <serial>"
-    echo "  gencrl            Regenerate a CA's CRL"
-    echo "  getca             Output the CA certificate"
-    echo "  expires <days>    Print certificates that will have been expired after <days>"
-    echo "  check <c> <w>     Nagios-style check for expires after <c> or <w> days"
-    echo "  getcert <serial>  Output the certificate matching <serial>"
-    echo "  getchain <serial> Output a certificate chain for <serial>"
-    echo "  help              Show this help"
-}
-
-# Check if we need to commit anything
-git_check() {
-    cd "${PDIR}"
-    if git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
-        echo -e '\007\e[31m' >&2
-        echo "The working folder (${PDIR}) is part of a git repository!" >&2
-        echo "Do *not* forget to check if you need to commit / push anything!" >&2
-        echo -e '\e[0m' >&2
-        echo "REMEMBER! Post-merging or rebasing CA repositories is more often than not impossible!" >&2
-        echo "Go to ${PDIR} *now* to check!" >&2
-    fi
-}
-
 # Options
-while getopts ":c:d:i:h" opt; do
+while getopts ":c:d:i:hv" opt; do
     case "${opt}" in
         c)  # OpenSSL config
             CONF="${OPTARG}"
@@ -93,6 +92,11 @@ while getopts ":c:d:i:h" opt; do
             exit
         ;;
 
+        v)  # Version
+            echo "${self} ${version}"
+            exit
+        ;;
+
         \?) # ?
             echo "Unknown option: -${OPTARG}"
             echo
@@ -110,7 +114,41 @@ while getopts ":c:d:i:h" opt; do
 done
 shift $((${OPTIND} - 1))    # Any non-option arguments are now just $1, $2, etc.
 
-[ "${1}" == "help" ] && usage && exit
+# Commands that don't need a working configuration are executed here
+case "${1}" in
+    help)
+        usage
+        exit
+    ;;
+
+    version)
+        echo "${self} ${version}"
+        exit
+    ;;
+
+    # We'll save these commands for later
+    init |\
+    reinit |\
+    sign |\
+    list |\
+    list-revoked |\
+    revoke |\
+    gencrl |\
+    getca |\
+    expires |\
+    check |\
+    getcert |\
+    getchain)
+        command="${1}"
+    ;;
+
+    *)
+        echo "Invalid or empty command: ${1}"
+        echo
+        usage
+        exit 1
+    ;;
+esac
 
 # Sanity checks
 if [ ! -r "${CONF}" ]; then
@@ -130,12 +168,12 @@ fi
 export CA
 export PDIR
 export CA_DIR="${PDIR}/${CA}"
+export CA_PREF CA_CNTR CA_PROV CA_CITY CA_ORGA CA_UNIT CA_MAIL URL_PRE
+export RCA_VAL INT_VAL CRT_VAL CRL_VAL
+export CAPWD="$(eval "echo \${CAPWD_${CA}}")" # Get CA's password from environment. This is almost always very insecure!
 
-# Get CA's password from environment. This is almost always very insecure!
-export CAPWD="$(eval "echo \${CAPWD_${CA}}")"
-
-#Commands
-case "${1}" in
+# Commands
+case "${command}" in
     init)   # Initialise the CA
         if [ -f "${CA_DIR}/serial" ]; then
             echo "There's already a CA at ${CA_DIR}"
@@ -430,12 +468,9 @@ case "${1}" in
         fi
     ;;
 
-    help)
-        usage
-    ;;
-
     *)
-        echo "Invalid or empty command: ${1}"
+        echo "Invalid or empty command: ${command}"
+        echo "How did this even happen?!?"
         echo
         usage
         exit 1
