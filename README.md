@@ -24,6 +24,7 @@ Valid options are:
                     CAs as sub-folders.
   -i <intermediate> Work on <intermediate> (instead of the Root CA)
   -h                Show this help
+  -v                Show cayman's version
 
 Valid commands are:
   init              Initialise the specified CA
@@ -39,6 +40,7 @@ Valid commands are:
   getcert <serial>  Output the certificate matching <serial>
   getchain <serial> Output a certificate chain for <serial>
   help              Show this help
+  version           Show cayman's version
 ```
 
 Note that `expires` outputs certificates that will have been expired after
