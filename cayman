@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 # These should probably be left alone
-version="20200503.01"
+version="20230417.01"
 CA="Root"
 INTER=false
 self="$(basename "${0}")"
@@ -32,6 +32,7 @@ usage() {
     echo "  getca             Output the CA certificate"
     echo "  expires <days>    Print certificates that will have been expired after <days>"
     echo "  check <c> <w>     Nagios-style check for expires after <c> or <w> days"
+    echo "  metrics           Output Prometheus-style metrics"
     echo "  getcert <serial>  Output the certificate matching <serial>"
     echo "  getchain <serial> Output a certificate chain for <serial>"
     echo "  help              Show this help"
@@ -49,6 +50,12 @@ git_check() {
         echo "REMEMBER! Post-merging or rebasing CA repositories is more often than not impossible!" >&2
         echo "Go to ${PDIR} *now* to check!" >&2
     fi
+}
+
+# Convert OpenSSL's datetime format to Unix time
+ssl_unix() {
+    timestamp="$(echo "${1}" | awk '{ printf "%04d-%02d-%02d %s\n", $4, (index("JanFebMarAprMayJunJulAugSepOctNovDec",$1)+2)/3, $2, $3}')"
+    date -ud "${timestamp}" +'%s' 2> /dev/null || date -juf '%Y-%m-%d %T' "${timestamp}" +'%s' 2> /dev/null
 }
 
 # Get configuration from either /etc or /usr/local/etc or git repo
@@ -137,6 +144,7 @@ case "${1}" in
     getca |\
     expires |\
     check |\
+    metrics |\
     getcert |\
     getchain)
         command="${1}"
@@ -321,7 +329,7 @@ case "${command}" in
     ;;
 
     list)
-        for s in $(cat "${CA_DIR}/index.txt" | egrep "^V" | cut -f 4); do
+        for s in $(egrep "^V" "${CA_DIR}/index.txt" | cut -f 4); do
             echo -n "${s}  "
             openssl x509 -noout -text -in "${CA_DIR}/newcerts/${s}.pem" | grep "Subject:" | sed \
                 's/.*,\ CN=//g;s/\/.*$//g'
@@ -331,7 +339,7 @@ case "${command}" in
     ;;
 
     list-revoked)
-        cat "${CA_DIR}/index.txt" | egrep "^R" | cut -f 4,6 | sed 's|[[:space:]]/.*/CN=|\ \ |g;s|/.*||g'
+        egrep "^R" "${CA_DIR}/index.txt" | cut -f 4,6 | sed 's|[[:space:]]/.*/CN=|\ \ |g;s|/.*||g'
     ;;
 
     revoke)
@@ -372,7 +380,7 @@ case "${command}" in
 
     expires)
         seconds=$(( 86400 * ${2:-0} ))
-        for s in $(cat "${CA_DIR}/index.txt" | egrep "^V" | cut -f 4); do
+        for s in $(egrep "^V" "${CA_DIR}/index.txt" | cut -f 4); do
             cert="${CA_DIR}/newcerts/${s}.pem"
             if ! openssl x509 -noout -checkend ${seconds} -in "${cert}" > /dev/null; then
                 email="$(openssl x509 -noout -email -in "${cert}")"
@@ -450,6 +458,70 @@ case "${command}" in
                 exit 3
             ;;
         esac
+    ;;
+
+    metrics)
+        echo "# HELP cayman_info Information about Cayman."
+        echo "# TYPE cayman_info gauge"
+        echo "cayman_info{version=\"${version}\",openssl_version=\"$(openssl version -v | cut -d ' ' -f 2)\",platform=\"$(uname -sm)\"} 1"
+
+        test -r "${CA_DIR}/ca.crt" || exit
+
+        echo "# HELP cayman_valid_from_seconds Time at which the certificate's validity starts, in seconds since Unix epoch."
+        echo "# TYPE cayman_valid_from_seconds gauge"
+        echo -n "cayman_valid_from_seconds{ca=\"${CA}\",serial=\"$(openssl x509 -noout -serial -in "${CA_DIR}/ca.crt" | sed 's|serial=||')\",common_name=\"$(openssl x509 -noout -subject -in "${CA_DIR}/ca.crt" | sed 's|.*CN\ =\ ||;s|,.*||')\"} "
+        ssl_unix "$(openssl x509 -noout -startdate -in "${CA_DIR}/ca.crt" | sed 's/^notBefore=//')"
+        for cert in $(egrep "^V" "${CA_DIR}/index.txt" | cut -f 4); do
+            echo -n "cayman_valid_from_seconds{ca=\"${CA}\",serial=\"$(openssl x509 -noout -serial -in "${CA_DIR}/newcerts/${cert}.pem" | sed 's|serial=||')\",common_name=\"$(openssl x509 -noout -subject -in "${CA_DIR}/newcerts/${cert}.pem" | sed 's|.*CN\ =\ ||;s|,.*||')\"} "
+            ssl_unix "$(openssl x509 -noout -startdate -in "${CA_DIR}/newcerts/${cert}.pem" | sed 's/^notBefore=//')"
+        done
+        for inter in "${CA_DIR}/certs"/*; do
+            inter="$(basename "${inter}" ".crt")";
+            grep -r "${inter} CA" "${CA_DIR}/index.txt" | egrep -q "^V" || continue
+            for cert in $(egrep "^V" "${PDIR}/${inter}/index.txt" | cut -f 4); do
+                echo -n "cayman_valid_from_seconds{ca=\"${inter}\",serial=\"$(openssl x509 -noout -serial -in "${PDIR}/${inter}/newcerts/${cert}.pem" | sed 's|serial=||')\",common_name=\"$(openssl x509 -noout -subject -in "${PDIR}/${inter}/newcerts/${cert}.pem" | sed 's|.*CN\ =\ ||;s|,.*||')\"} "
+                ssl_unix "$(openssl x509 -noout -startdate -in "${PDIR}/${inter}/newcerts/${cert}.pem" | sed 's/^notBefore=//')"
+            done
+        done
+
+        echo "# HELP cayman_expires_at_seconds Time at which the certificate's validity ends, in seconds since Unix epoch."
+        echo "# TYPE cayman_expires_at_seconds gauge"
+        echo -n "cayman_expires_at_seconds{ca=\"${CA}\",serial=\"00\",common_name=\"$(openssl x509 -noout -subject -in "${CA_DIR}/ca.crt" | sed 's|.*CN\ =\ ||;s|,.*||')\"} "
+        ssl_unix "$(openssl x509 -noout -enddate -in "${CA_DIR}/ca.crt" | sed 's/^notAfter=//')"
+        for cert in $(egrep "^V" "${CA_DIR}/index.txt" | cut -f 4); do
+            echo -n "cayman_expires_at_seconds{ca=\"${CA}\",serial=\"$(openssl x509 -noout -serial -in "${CA_DIR}/newcerts/${cert}.pem" | sed 's|serial=||')\",common_name=\"$(openssl x509 -noout -subject -in "${CA_DIR}/newcerts/${cert}.pem" | sed 's|.*CN\ =\ ||;s|,.*||')\"} "
+            ssl_unix "$(openssl x509 -noout -enddate -in "${CA_DIR}/newcerts/${cert}.pem" | sed 's/^notAfter=//')"
+        done
+        for inter in "${CA_DIR}/certs"/*; do
+            inter="$(basename "${inter}" ".crt")";
+            grep -r "${inter} CA" "${CA_DIR}/index.txt" | egrep -q "^V" || continue
+            for cert in $(egrep "^V" "${PDIR}/${inter}/index.txt" | cut -f 4); do
+                echo -n "cayman_expires_at_seconds{ca=\"${inter}\",serial=\"$(openssl x509 -noout -serial -in "${PDIR}/${inter}/newcerts/${cert}.pem" | sed 's|serial=||')\",common_name=\"$(openssl x509 -noout -subject -in "${PDIR}/${inter}/newcerts/${cert}.pem" | sed 's|.*CN\ =\ ||;s|,.*||')\"} "
+                ssl_unix "$(openssl x509 -noout -enddate -in "${PDIR}/${inter}/newcerts/${cert}.pem" | sed 's/^notAfter=//')"
+            done
+        done
+
+        echo "# HELP cayman_valid_certificates_total Number of valid certificates signed by CA."
+        echo "# TYPE cayman_valid_certificates_total gauge"
+        echo -n "cayman_valid_certificates_seconds{ca=\"${CA}\"} "
+        egrep "^V" "${CA_DIR}/index.txt" | wc -l | sed 's|[[:space:]]*||'
+        for inter in "${CA_DIR}/certs"/*; do
+            inter="$(basename "${inter}" ".crt")";
+            grep -r "${inter} CA" "${CA_DIR}/index.txt" | egrep -q "^V" || continue
+            echo -n "cayman_valid_certificates_seconds{ca=\"${inter}\"} "
+            egrep "^V" "${PDIR}/${inter}/index.txt" | wc -l | sed 's|[[:space:]]*||'
+        done
+
+        echo "# HELP cayman_revoked_certificates_total Number of revoked certificates once signed by CA."
+        echo "# TYPE cayman_revoked_certificates_total gauge"
+        echo -n "cayman_revoked_certificates_seconds{ca=\"${CA}\"} "
+        egrep "^R" "${CA_DIR}/index.txt" | wc -l | sed 's|[[:space:]]*||'
+        for inter in "${CA_DIR}/certs"/*; do
+            inter="$(basename "${inter}" ".crt")";
+            grep -r "${inter} CA" "${CA_DIR}/index.txt" | egrep -q "^V" || continue
+            echo -n "cayman_revoked_certificates_seconds{ca=\"${inter}\"} "
+            egrep "^R" "${PDIR}/${inter}/index.txt" | wc -l | sed 's|[[:space:]]*||'
+        done
     ;;
 
     getcert)

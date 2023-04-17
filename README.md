@@ -58,11 +58,12 @@ environment. Passwords can be set in the form of `$CAPWD_<intermediate>` (use
 ## Docker, buildah/podman, container stuffs
 
 The supplied `Dockerfile` will create a container that contains `cayman` as
-well as nginx, which is configured to serve out all CA certficates and
-revocation lists for the cayman-managed CAs. cayman itself will operate on a
-volume, which will be preserved in case the container goes down or gets an
-update. An URL pointing to nginx in the container can be used as the `URL_PRE`
-used by cayman to construct the revocation list URLs.
+well as OpenResty / nginx, which is configured to serve out all CA certficates
+and revocation lists for the cayman-managed CAs at port 80. cayman itself will
+operate on a volume, which will be preserved in case the container goes down or
+gets an update. An URL pointing to nginx in the container can be used as the
+`URL_PRE` used by cayman to construct the revocation list URLs. At port 8080,
+nginx serves out the ouput of `cayman metrics`.
 
 You can build the container with something like:  
 `% buildah bud -t cayman .`  
