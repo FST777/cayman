@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 # These should probably be left alone
-version="20230417.01"
+version="20230417.02"
 CA="Root"
 INTER=false
 self="$(basename "${0}")"
@@ -486,7 +486,7 @@ case "${command}" in
 
         echo "# HELP cayman_expires_at_seconds Time at which the certificate's validity ends, in seconds since Unix epoch."
         echo "# TYPE cayman_expires_at_seconds gauge"
-        echo -n "cayman_expires_at_seconds{ca=\"${CA}\",serial=\"00\",common_name=\"$(openssl x509 -noout -subject -in "${CA_DIR}/ca.crt" | sed 's|.*CN\ =\ ||;s|,.*||')\"} "
+        echo -n "cayman_expires_at_seconds{ca=\"${CA}\",serial=\"$(openssl x509 -noout -serial -in "${CA_DIR}/ca.crt" | sed 's|serial=||')\",common_name=\"$(openssl x509 -noout -subject -in "${CA_DIR}/ca.crt" | sed 's|.*CN\ =\ ||;s|,.*||')\"} "
         ssl_unix "$(openssl x509 -noout -enddate -in "${CA_DIR}/ca.crt" | sed 's/^notAfter=//')"
         for cert in $(egrep "^V" "${CA_DIR}/index.txt" | cut -f 4); do
             echo -n "cayman_expires_at_seconds{ca=\"${CA}\",serial=\"$(openssl x509 -noout -serial -in "${CA_DIR}/newcerts/${cert}.pem" | sed 's|serial=||')\",common_name=\"$(openssl x509 -noout -subject -in "${CA_DIR}/newcerts/${cert}.pem" | sed 's|.*CN\ =\ ||;s|,.*||')\"} "
