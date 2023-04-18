@@ -503,23 +503,23 @@ case "${command}" in
 
         echo "# HELP cayman_valid_certificates_total Number of valid certificates signed by CA."
         echo "# TYPE cayman_valid_certificates_total gauge"
-        echo -n "cayman_valid_certificates_seconds{ca=\"${CA}\"} "
+        echo -n "cayman_valid_certificates_total{ca=\"${CA}\"} "
         egrep "^V" "${CA_DIR}/index.txt" | wc -l | sed 's|[[:space:]]*||'
         for inter in "${CA_DIR}/certs"/*; do
             inter="$(basename "${inter}" ".crt")";
             grep -r "${inter} CA" "${CA_DIR}/index.txt" | egrep -q "^V" || continue
-            echo -n "cayman_valid_certificates_seconds{ca=\"${inter}\"} "
+            echo -n "cayman_valid_certificates_total{ca=\"${inter}\"} "
             egrep "^V" "${PDIR}/${inter}/index.txt" | wc -l | sed 's|[[:space:]]*||'
         done
 
         echo "# HELP cayman_revoked_certificates_total Number of revoked certificates once signed by CA."
         echo "# TYPE cayman_revoked_certificates_total gauge"
-        echo -n "cayman_revoked_certificates_seconds{ca=\"${CA}\"} "
+        echo -n "cayman_revoked_certificates_total{ca=\"${CA}\"} "
         egrep "^R" "${CA_DIR}/index.txt" | wc -l | sed 's|[[:space:]]*||'
         for inter in "${CA_DIR}/certs"/*; do
             inter="$(basename "${inter}" ".crt")";
             grep -r "${inter} CA" "${CA_DIR}/index.txt" | egrep -q "^V" || continue
-            echo -n "cayman_revoked_certificates_seconds{ca=\"${inter}\"} "
+            echo -n "cayman_revoked_certificates_total{ca=\"${inter}\"} "
             egrep "^R" "${PDIR}/${inter}/index.txt" | wc -l | sed 's|[[:space:]]*||'
         done
     ;;
