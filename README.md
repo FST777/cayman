@@ -37,6 +37,7 @@ Valid commands are:
   getca             Output the CA certificate
   expires <days>    Print certificates that will have been expired after <days>
   check <c> <w>     Nagios-style check for expires after <c> or <w> days
+  metrics           Output Prometheus-style metrics
   getcert <serial>  Output the certificate matching <serial>
   getchain <serial> Output a certificate chain for <serial>
   help              Show this help
