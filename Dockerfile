@@ -9,7 +9,6 @@ RUN mkdir -p /tmp/root/usr/local/share/cayman/CA
 COPY cayman /tmp/root/usr/local/bin/
 COPY cayman.conf openssl.conf /tmp/root/usr/local/etc/
 COPY nginx.conf /tmp/root/etc/nginx/conf.d/default.conf
-RUN mkdir /tmp/root/usr/bin; ln -s /usr/bin/openssl3 /tmp/root/usr/bin/openssl
 
 # Adjust cayman.conf
 RUN sed -i 's|^PDIR=.*$|PDIR="/usr/local/share/cayman/CA/"|' /tmp/root/usr/local/etc/cayman.conf && \
@@ -26,7 +25,7 @@ FROM docker.io/openresty/openresty:alpine-apk
 LABEL maintainer="Frans-Jan van Steenbeek <frans-jan@van-steenbeek.net>"
 
 # Install OpenSSL
-RUN apk add --no-cache --update openssl3
+RUN apk add --no-cache --update openssl
 
 # Add cayman
 COPY --from=builder /tmp/root/ /
