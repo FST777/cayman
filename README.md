@@ -56,31 +56,25 @@ For insecure setups, `cayman` can read the passwords for the CAs from the
 environment. Passwords can be set in the form of `$CAPWD_<intermediate>` (use
 `$CAPWD_Root` for the Root CA).
 
-## Docker, buildah/podman, container stuffs
+## OCI containers (Podman/Buildah, Docker, etc)
 
-The supplied `Dockerfile` will create a container that contains `cayman` as
-well as OpenResty / nginx, which is configured to serve out all CA certficates
-and revocation lists for the cayman-managed CAs at port 80. cayman itself will
+The supplied `Containerfile` will create a container that contains `cayman` as
+well as lighttpd, which is configured to serve out all CA certficates and
+revocation lists for the cayman-managed CAs at port 80. cayman itself will
 operate on a volume, which will be preserved in case the container goes down or
-gets an update. An URL pointing to nginx in the container can be used as the
-`URL_PRE` used by cayman to construct the revocation list URLs. At port 8080,
-nginx serves out the ouput of `cayman metrics`.
+gets an update. An URL pointing to the container can be used as the `URL_PRE`
+used by cayman to construct the revocation list URLs. At port 8080, lighttpd
+serves out the ouput of `cayman metrics`.
 
 You can build the container with something like:  
 `% buildah bud -t cayman .`  
-or:  
-`# docker build -t cayman .`
 
 Alternatively, pull the image from the [Docker Hub](https://hub.docker.com/r/fst777/cayman)
 (available for amd64 and arm64):
 `% podman pull fst777/cayman`  
-or:  
-`# docker pull fst777/cayman`
 
 You can then run the container with:  
 `% podman run -d --env-file environment --name caycnt cayman`  
-or:  
-`# docker run -d --env-file environment --name caycnt cayman`
 
 The `--env-file environment` flag is optional and could point to a file (here
 named `environment`) that contains configuration normally managed in
@@ -105,13 +99,6 @@ something like:
 `% podman exec -t caycnt cayman -i HTTPS list`  
 `% podman exec -t caycnt cayman -i HTTPS getcert 01`  
 `% podman exec -t caycnt cayman -i HTTPS revoke 01`  
-or:  
-`# docker exec -ti caycnt cayman init`  
-`# docker exec -ti caycnt cayman -i HTTPS init`  
-`# docker exec -tie CSR=$(cat request.csr) caycnt cayman -i HTTPS sign`  
-`# docker exec -ti caycnt cayman -i HTTPS list`  
-`# docker exec -ti caycnt cayman -i HTTPS getcert 01`  
-`# docker exec -ti caycnt cayman -i HTTPS revoke 01`
 
 ## Thanks
 
