@@ -69,8 +69,9 @@ serves out the ouput of `cayman metrics`.
 You can build the container with something like:  
 `% buildah bud -t cayman .`  
 
-Alternatively, pull the image from the [Docker Hub](https://hub.docker.com/r/fst777/cayman)
-(available for amd64 and arm64):
+Alternatively, pull the image from the [Docker
+Hub](https://hub.docker.com/r/fst777/cayman) (available for amd64 and arm64):
+
 `% podman pull fst777/cayman`  
 
 You can then run the container with:  
@@ -102,11 +103,11 @@ something like:
 
 ## Thanks
 
-Credits should go to two of my employers:
+Credits should go to two of my previous employers:
 - The first versions of this were quickly hacked together for internal use at
   Spil Games. They later graciously agreed for it to be released as Open
   Source software.
-- Again for internal use, cayman was dockerified and fleshed out a bit at
+- Again for internal use, cayman was containerized and fleshed out a bit at
   InterNLnet.
 
 ## License
