@@ -1,11 +1,11 @@
-name: Publish Docker image
+name: Publish container image
 
 on:
   workflow_dispatch:
   push:
-    branches: [ "lighttpd" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "lighttpd" ]
+    branches: [ "main" ]
 
 jobs:
   build:
@@ -20,19 +20,17 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y qemu-user-static
 
-    - name: Build Image
+    - name: Build image
       id: build-image
       uses: redhat-actions/buildah-build@v2
       with:
         image: cayman
-        tags: lighttpd ${{ github.sha }}
+        tags: latest
         platforms: linux/amd64,linux/arm64/v8
         containerfiles: |
           ./Containerfile
 
-    # Podman Login action (https://github.com/redhat-actions/podman-login) also be used to log in,
-    # in which case 'username' and 'password' can be omitted.
-    - name: Push To Docker Hub
+    - name: Push to Docker Hub
       id: push-to-docker
       uses: redhat-actions/push-to-registry@v2
       with:
@@ -43,4 +41,4 @@ jobs:
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
     - name: Print image url
-      run: echo "Image pushed to ${{ steps.push-to-quay.outputs.registry-paths }}"
+      run: echo "Image pushed to ${{ steps.push-to-docker.outputs.registry-paths }}"
