@@ -37,6 +37,5 @@ jobs:
 #        username: ${{ secrets.DOCKERHUB_USERNAME }}
 #        password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Print image url
-       run: echo "Image ${{ steps.build-image.outputs.image }} build with tags ${{ steps.build-image.outputs.tags }}"
+#    - name: Print image url
 #      run: echo "Image pushed to ${{ steps.push-to-quay.outputs.registry-paths }}"
