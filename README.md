@@ -56,7 +56,7 @@ For insecure setups, `cayman` can read the passwords for the CAs from the
 environment. Passwords can be set in the form of `$CAPWD_<intermediate>` (use
 `$CAPWD_Root` for the Root CA).
 
-## OCI containers (Podman/Buildah, Docker, etc)
+## OCI container (Podman, Docker, etc)
 
 The supplied `Containerfile` will create a container that contains `cayman` as
 well as lighttpd, which is configured to serve out all CA certficates and
@@ -67,12 +67,13 @@ used by cayman to construct the revocation list URLs. At port 8080, lighttpd
 serves out the ouput of `cayman metrics`.
 
 You can build the container with something like:  
-`% buildah bud -t cayman .`  
+`% buildah bud -t cayman ./Containerfile`  
 
-Alternatively, pull the image from the [Docker
-Hub](https://hub.docker.com/r/fst777/cayman) (available for amd64 and arm64):
+Alternatively, pull the image from the [GitHub Container
+Registry](https://github.com/FST777/cayman/pkgs/container/cayman) (available
+for amd64 and arm64):
 
-`% podman pull fst777/cayman`  
+`% podman pull ghcr.io/fst777/cayman`  
 
 You can then run the container with:  
 `% podman run -d --env-file environment --name caycnt cayman`  
