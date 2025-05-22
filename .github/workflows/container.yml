@@ -28,11 +28,11 @@ jobs:
         containerfiles: |
           ./Containerfile
 
-     - name: set lower case owner name
-       env:
-         OWNER: '${{ github.repository_owner }}'
-       run: |
-         echo "OWNER_LC=${OWNER,,}" >> ${GITHUB_ENV}
+    - name: Registry owner to lowercase
+      env:
+        OWNER: '${{ github.repository_owner }}'
+      run: |
+        echo "OWNER_LC=${OWNER,,}" >> ${GITHUB_ENV}
 
 #    - name: Push to Docker Hub
 #      id: push-to-docker
