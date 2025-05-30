@@ -3,61 +3,99 @@ name: Publish container image
 on:
   workflow_dispatch:
   push:
-    branches: [ "main" ]
-    paths-ignore: [ "**.md", "**.yml" ]
+    branches: [ "freebsd" ]
+#    paths-ignore: [ "**.md", "**.yml" ]
 
 jobs:
-  build:
-    name: Build and push image
-    runs-on: ubuntu-22.04
+  freebsd:
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        architecture: [x86-64, arm64]
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Support multi-arch builds
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y qemu-user-static
+      - name: Build FreeBSD
+        uses: cross-platform-actions/action@v0.28.0
+        with:
+          operating_system: freebsd
+          architecture: ${{ matrix.architecture }}
+          version: 14.2
+          environment_variables: HOSTNM
+          run: |
+            sudo ./build-assets/setup.sh
+            sudo buildah bud -t cayman:latest ./Containerfile.FreeBSD
+            sudo buildah push cayman:latest oci-archive:cayman.${{ matrix.architecture}}.tar:cayman:latest
 
-    - name: Build image
-      id: build-image
-      uses: redhat-actions/buildah-build@v2
-      with:
-        image: cayman
-        tags: latest
-        platforms: linux/amd64,linux/arm64/v8
-        containerfiles: |
-          ./Containerfile.Linux
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.architecture }}
+          path: ./cayman.${{ matrix.architecture }}.tar
+          retention-days: 1
 
-    - name: Registry owner to lowercase
-      env:
-        GHOWNER: '${{ github.repository_owner }}'
-        DHOWNER: '${{ secrets.DOCKERHUB_USERNAME }}'
-      run: |
-        echo "GHOWNER_LC=${GHOWNER,,}" >> ${GITHUB_ENV}
-        echo "DHOWNER_LC=${DHOWNER,,}" >> ${GITHUB_ENV}
+  linux:
+    runs-on: ubuntu-24.04
+    needs: freebsd
 
-    - name: Push to GitHub Container Registry
-      id: push-to-ghcr
-      uses: redhat-actions/push-to-registry@v2
-      with:
-        image: ${{ steps.build-image.outputs.image }}
-        tags: ${{ steps.build-image.outputs.tags }}
-        registry: ghcr.io/${{ env.GHOWNER_LC }}
-        username: ${{ github.actor }}
-        password: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
 
-    - name: Push to Docker Hub
-      id: push-to-docker
-      uses: redhat-actions/push-to-registry@v2
-      with:
-        image: ${{ steps.build-image.outputs.image }}
-        tags: ${{ steps.build-image.outputs.tags }}
-        registry: docker.io/${{ env.DHOWNER_LC }}
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Support multi-arch builds
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-user-static
 
-    - name: Print image url
-      run: |
-        echo "Image pushed to ${{ steps.push-to-ghcr.outputs.registry-paths }}"
-        echo "Image pushed to ${{ steps.push-to-docker.outputs.registry-paths }}"
+      - name: Build Linux
+        id: build-image
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: cayman
+          tags: latest
+          platforms: linux/amd64,linux/arm64/v8
+          containerfiles: |
+            ./Containerfile.Linux
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
+      - name: Add FreeBSD images
+        run: |
+          buildah manifest add cayman:latest oci-archive:cayman.x86-64.tar oci-archive:cayman.arm64.tar
+          buildah manifest inspect cayman:latest
+
+#      - name: Registry owner to lowercase
+#        env:
+#          gHOWNER: '${{ github.repository_owner }}'
+#          dHOWNER: '${{ secrets.DOCKERHUB_USERNAME }}'
+#        run: |
+#          echo "GHOWNER_LC=${GHOWNER,,}" >> ${GITHUB_ENV}
+#          echo "DHOWNER_LC=${DHOWNER,,}" >> ${GITHUB_ENV}
+#  
+#      - name: Push to GitHub Container Registry
+#        id: push-to-ghcr
+#        uses: redhat-actions/push-to-registry@v2
+#        with:
+#          image: ${{ steps.build-image.outputs.image }}
+#          tags: ${{ steps.build-image.outputs.tags }}
+#          registry: ghcr.io/${{ env.GHOWNER_LC }}
+#          username: ${{ github.actor }}
+#          password: ${{ github.token }}
+#  
+#      - name: Push to Docker Hub
+#        id: push-to-docker
+#        uses: redhat-actions/push-to-registry@v2
+#        with:
+#          image: ${{ steps.build-image.outputs.image }}
+#          tags: ${{ steps.build-image.outputs.tags }}
+#          registry: docker.io/${{ env.DHOWNER_LC }}
+#          username: ${{ secrets.DOCKERHUB_USERNAME }}
+#          password: ${{ secrets.DOCKERHUB_TOKEN }}
+#  
+#      - name: Print image url
+#        run: |
+#          echo "Image pushed to ${{ steps.push-to-ghcr.outputs.registry-paths }}"
+#          echo "Image pushed to ${{ steps.push-to-docker.outputs.registry-paths }}"
