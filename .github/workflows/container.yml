@@ -71,9 +71,11 @@ jobs:
           echo "=========="
           buildah manifest inspect cayman:latest
           echo "=========="
-          buildah manifest add cayman:latest oci-archive:cayman.amd64.tar
+          buildah manifest add cayman:latest oci-archive:cayman.x86-64.tar
           buildah manifest add cayman:latest oci-archive:cayman.arm64.tar
+          buildah tag cayman:latest "cayman:$(./cayman version | cut -d ' ' -f 2)"
           echo "=========="
+          buildah images
           buildah manifest inspect cayman:latest
           echo "=========="
 
