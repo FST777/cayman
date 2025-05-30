@@ -2,7 +2,7 @@
 # Builder container #
 #####################
 
-FROM runtime-pkg AS builder
+FROM ghcr.io/fst777/runtime-pkg:latest AS builder
 
 # Set up filesystem
 RUN mkdir -p /tmp/root/usr/local/bin /tmp/root/usr/local/etc /tmp/root/usr/local/share/cayman/CA /tmp/root/etc/lighttpd ./tmp/root/var/tmp
@@ -37,7 +37,7 @@ echo "[ -r /usr/local/share/cayman/cayman.conf ] && source /usr/local/share/caym
 # Cayman container #
 ####################
 
-FROM busybox
+FROM ghcr.io/fst777/busybox:latest
 LABEL maintainer="Frans-Jan van Steenbeek <frans-jan@van-steenbeek.net>"
 
 # Add cayman
