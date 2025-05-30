@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 
 # These should probably be left alone
-version="20250521.01"
+version="20250530.01"
 CA="Root"
 INTER=false
 self="$(basename "${0}")"
