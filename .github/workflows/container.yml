@@ -6,38 +6,38 @@ on:
     branches: [ "freebsd" ]
 #    paths-ignore: [ "**.md", "**.yml" ]
 
-jobs:
-  freebsd:
-    runs-on: ubuntu-24.04
-    strategy:
-      matrix:
-        architecture: [x86-64, arm64]
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Build FreeBSD
-        uses: cross-platform-actions/action@v0.28.0
-        with:
-          operating_system: freebsd
-          architecture: ${{ matrix.architecture }}
-          version: 14.2
-          environment_variables: HOSTNM
-          run: |
-            sudo ./build-assets/setup.sh
-            sudo buildah bud -t cayman:latest ./Containerfile.FreeBSD
-            sudo buildah push cayman:latest oci-archive:cayman.${{ matrix.architecture}}.tar:cayman:latest
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.architecture }}
-          path: ./cayman.${{ matrix.architecture }}.tar
-          retention-days: 1
+#jobs:
+#  freebsd:
+#    runs-on: ubuntu-24.04
+#    strategy:
+#      matrix:
+#        architecture: [x86-64, arm64]
+#
+#    steps:
+#      - uses: actions/checkout@v4
+#
+#      - name: Build FreeBSD
+#        uses: cross-platform-actions/action@v0.28.0
+#        with:
+#          operating_system: freebsd
+#          architecture: ${{ matrix.architecture }}
+#          version: 14.2
+#          environment_variables: HOSTNM
+#          run: |
+#            sudo ./build-assets/setup.sh
+#            sudo buildah bud -t cayman:latest ./Containerfile.FreeBSD
+#            sudo buildah push cayman:latest oci-archive:cayman.${{ matrix.architecture}}.tar:cayman:latest
+#
+#      - name: Upload artifact
+#        uses: actions/upload-artifact@v4
+#        with:
+#          name: ${{ matrix.architecture }}
+#          path: ./cayman.${{ matrix.architecture }}.tar
+#          retention-days: 1
 
   linux:
     runs-on: ubuntu-24.04
-    needs: freebsd
+#    needs: freebsd
 
     steps:
       - uses: actions/checkout@v4
@@ -57,15 +57,18 @@ jobs:
           containerfiles: |
             ./Containerfile.Linux
 
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          merge-multiple: true
+#      - name: Download artifacts
+#        uses: actions/download-artifact@v4
+#        with:
+#          merge-multiple: true
 
       - name: Add FreeBSD images
         run: |
-          buildah manifest add cayman:latest oci-archive:cayman.x86-64.tar oci-archive:cayman.arm64.tar
-          buildah manifest inspect cayman:latest
+          echo "=========="
+          buildah images
+          echo "=========="
+          ls -l
+          echo "=========="
 
 #      - name: Registry owner to lowercase
 #        env:
