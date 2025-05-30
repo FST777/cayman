@@ -71,8 +71,8 @@ jobs:
 
       - name: Registry owner to lowercase
         env:
-          gHOWNER: '${{ github.repository_owner }}'
-          dHOWNER: '${{ secrets.DOCKERHUB_USERNAME }}'
+          GHOWNER: '${{ github.repository_owner }}'
+          DHOWNER: '${{ secrets.DOCKERHUB_USERNAME }}'
         run: |
           echo "GHOWNER_LC=${GHOWNER,,}" >> ${GITHUB_ENV}
           echo "DHOWNER_LC=${DHOWNER,,}" >> ${GITHUB_ENV}
