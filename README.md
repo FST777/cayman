@@ -67,7 +67,7 @@ used by cayman to construct the revocation list URLs. At port 8080, lighttpd
 serves out the ouput of `cayman metrics`.
 
 You can build the container with something like:  
-`% buildah bud -t cayman ./Containerfile.Linux`  
+`% buildah bud -t cayman ./Containerfile.Linux`
 
 Alternatively, pull the image from the [GitHub Container
 Registry](https://github.com/FST777/cayman/pkgs/container/cayman) (available
