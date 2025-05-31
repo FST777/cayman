@@ -1,6 +1,6 @@
 # cayman
 
-*CA Man*ager. No one knows where the *y* came from. `cayman` is a shell script
+*CA Man*ager. No one knows *y*. `cayman` is a shell script
 that acts as a wrapper around OpenSSL to manage, sign and revoke CAs and
 certificates in a semi-standardized way.
 
@@ -58,7 +58,7 @@ environment. Passwords can be set in the form of `$CAPWD_<intermediate>` (use
 
 ## OCI container (Podman, Docker, etc)
 
-The supplied `Containerfile` will create a container that contains `cayman` as
+The supplied `Containerfile`s will create a container that contains `cayman` as
 well as lighttpd, which is configured to serve out all CA certficates and
 revocation lists for the cayman-managed CAs at port 80. cayman itself will
 operate on a volume, which will be preserved in case the container goes down or
@@ -67,11 +67,11 @@ used by cayman to construct the revocation list URLs. At port 8080, lighttpd
 serves out the ouput of `cayman metrics`.
 
 You can build the container with something like:  
-`% buildah bud -t cayman ./Containerfile`  
+`% buildah bud -t cayman ./Containerfile.Linux`  
 
 Alternatively, pull the image from the [GitHub Container
 Registry](https://github.com/FST777/cayman/pkgs/container/cayman) (available
-for amd64 and arm64):
+for Linux and FreeBSD, amd64 and arm64):
 
 `% podman pull ghcr.io/fst777/cayman`  
 
