@@ -17,6 +17,7 @@ RUN <<EOF
       cp "${lib}" "/tmp/root${lib}"
     done
   done
+  [ "$(uname -m)" == "arm64" ] && cp /usr/bin/awk /tmp/root/usr/bin/awk
 EOF
 RUN mkdir -p /tmp/root/usr/local/lib/lighttpd && cp /usr/local/lib/lighttpd/mod_cgi.so /tmp/root/usr/local/lib/lighttpd
 RUN mkdir -p /tmp/root/var/www/localhost/htdocs && touch /tmp/root/var/www/localhost/htdocs/index.html
