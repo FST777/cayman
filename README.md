@@ -1,8 +1,8 @@
 # cayman
 
-*CA Man*ager. No one knows *y*. `cayman` is a shell script
-that acts as a wrapper around OpenSSL to manage, sign and revoke CAs and
-certificates in a semi-standardized way.
+*CA Man*ager. No one knows *y*. `cayman` is a shell script that acts as a
+wrapper around OpenSSL to manage, sign and revoke CAs and certificates in a
+semi-standardized way.
 
 ## Quickstart
 
