@@ -2,7 +2,7 @@
 # Builder container #
 #####################
 
-FROM ghcr.io/fst777/runtime-pkg:latest AS builder
+FROM ghcr.io/freebsd/freebsd-runtime:14.3 AS builder
 
 # Set up filesystem
 RUN mkdir -p /tmp/root/usr/local/bin /tmp/root/usr/local/etc /tmp/root/usr/local/share/cayman/CA /tmp/root/etc/lighttpd ./tmp/root/var/tmp
